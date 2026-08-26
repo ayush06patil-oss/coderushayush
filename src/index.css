@@ -1004,10 +1004,10 @@ body {
 .cursor-pointer { cursor: pointer; }
 .log-toggle-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); }
 
-/* Map Component Styles — Organic Geographic Network Topology */
-.map-card.organic-network-canvas {
-  background-color: #FFFDF8;
-  border: 1px solid #CBD5E1;
+/* Map Component Styles — Clean Scrollable Map Container */
+.map-card.clean-scrollable-map {
+  background-color: #FAFAFA;
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-card);
   padding: 18px;
   flex: 1;
@@ -1060,17 +1060,25 @@ body {
   background-color: #F1F5F9;
 }
 
-.map-viewport {
+.scrollable-map-viewport {
   flex: 1;
-  position: relative;
   margin: 12px 0;
-  transition: transform 0.2s ease;
-  min-height: 380px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background-color: white;
+}
+
+.scrollable-map-viewport::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollable-map-viewport::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 4px;
 }
 
 .map-svg-canvas {
-  width: 100%;
-  height: 100%;
   position: absolute;
   top: 0;
   left: 0;
@@ -1081,24 +1089,12 @@ body {
   filter: drop-shadow(0px 2px 6px rgba(37, 99, 235, 0.45));
 }
 
-.golden-node-vertex {
+.clean-golden-node {
   transition: r 0.15s ease, fill 0.15s ease;
 }
 
-.golden-node-vertex:hover {
-  r: 4;
-}
-
-.network-edge-distance {
-  user-select: none;
-  font-family: var(--font-family);
-  text-shadow: 0 1px 2px white, 0 -1px 2px white, 1px 0 2px white, -1px 0 2px white;
-}
-
-.network-node-label {
-  user-select: none;
-  font-family: var(--font-family);
-  text-shadow: 0 1px 2px white, 0 -1px 2px white, 1px 0 2px white, -1px 0 2px white;
+.clean-golden-node:hover {
+  r: 9;
 }
 
 .midpoint-time-tag {
@@ -1114,6 +1110,43 @@ body {
   z-index: 15;
   pointer-events: none;
   white-space: nowrap;
+}
+
+.node-badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background-color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  z-index: 12;
+  white-space: nowrap;
+}
+
+.node-badge.origin-badge {
+  border: 2px solid var(--primary-blue) !important;
+  background-color: #EFF6FF;
+  color: var(--primary-blue);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  z-index: 15;
+}
+
+.node-badge.destination-badge {
+  border: 2px solid var(--danger-red) !important;
+  background-color: #FEE2E2;
+  color: var(--danger-red);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+  z-index: 15;
 }
 
 .map-ambulance-marker {
