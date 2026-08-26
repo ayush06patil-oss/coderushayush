@@ -75,7 +75,7 @@ export default function App() {
     medicineStockPct: 82
   });
 
-  // Memoized 50,000-Node & 200,000-Edge Mass Simulation Dataset Generation
+  // Memoized 50,000-Node & 208,652-Edge Mass Simulation Dataset Generation
   const massData = useMemo(() => {
     return generateMassSimulationDataset();
   }, []);
@@ -110,11 +110,16 @@ export default function App() {
     return new SimulationEngine(activeGraph);
   }, [activeGraph]);
 
-  // Helper: Get start node ID from emergency village
+  // Robust start node resolution across standard & 50k mass mode
   const getStartNodeId = (emergency) => {
     const villageName = emergency?.village || "Village D";
+    if (networkMode === "50k" && massData.villages) {
+      const foundVillage = massData.villages.find(v => v.name.toLowerCase() === villageName.toLowerCase());
+      if (foundVillage && foundVillage.nearestNodeId) return foundVillage.nearestNodeId;
+    }
     const foundNode = activeNodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
-    return foundNode ? foundNode.id : "node_v_d";
+    if (foundNode) return foundNode.id;
+    return networkMode === "50k" ? "node_v_d" : "node_v_d";
   };
 
   // Phase 3: Dynamic Healthcare Evaluation Result
@@ -233,7 +238,6 @@ export default function App() {
       text: `${assignedCode} selected based on nearest route travel time`
     };
 
-    // Decrement capacity state on assignment
     setAppState(prev => ({
       ...prev,
       bedsAvailableCount: Math.max(0, prev.bedsAvailableCount - 1),
@@ -273,7 +277,7 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "route",
-      text: `${res.algorithm} routing started (${networkMode === "50k" ? "50,000 Nodes / 200,000 Edges" : "Standard Graph"})`
+      text: `${res.algorithm} routing started (${networkMode === "50k" ? "50,000 Nodes / 208,652 Edges" : "Standard Graph"})`
     };
     const log2 = {
       id: Date.now() + 1,
@@ -549,7 +553,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Mass Simulation Live Dashboard Card (50,000 Nodes, 200,000 Edges, 5,000 Locations) */}
+          {/* Mass Simulation Live Dashboard Card (50,000 Nodes, 208,652 Edges, 5,000 Locations) */}
           {networkMode === "50k" && (
             <MassDashboardCard massData={massData} />
           )}

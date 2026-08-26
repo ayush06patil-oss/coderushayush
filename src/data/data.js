@@ -96,7 +96,7 @@ export const MOCK_NODES = [
   { id: "node_ph_3", name: "Apex Pharma Hub", type: "pharmacy", x: 20, y: 40 }
 ];
 
-// Pure road network without hardcoded selected route flags
+// Pure road network with 100% connectivity across all 19 nodes
 export const MOCK_ROADS = [
   { id: "road_ab", name: "Route A-B", from: "node_v_a", to: "node_v_b", distance: 9.5, travelTime: 12, blocked: false },
   { id: "road_bd", name: "Route B-D", from: "node_v_b", to: "node_v_d", distance: 5.2, travelTime: 7, blocked: false },
@@ -117,7 +117,15 @@ export const MOCK_ROADS = [
   { id: "road_vg_hc1", name: "Route G-HC", from: "node_v_g", to: "node_hc_1", distance: 5.5, travelTime: 7, blocked: false },
   { id: "road_vh_vd", name: "Route H-D", from: "node_v_h", to: "node_v_d", distance: 9.0, travelTime: 11, blocked: false },
   { id: "road_vc_ahc", name: "Route C-HC", from: "node_v_c", to: "node_hc_1", distance: 4.2, travelTime: 6, blocked: false },
-  { id: "road_hd_va", name: "Route HospD-A", from: "node_h_d", to: "node_v_a", distance: 11.2, travelTime: 14, blocked: false }
+  { id: "road_hd_va", name: "Route HospD-A", from: "node_h_d", to: "node_v_a", distance: 11.2, travelTime: 14, blocked: false },
+  { id: "road_he_hc", name: "Route HospE-C", from: "node_h_e", to: "node_h_c", distance: 16.5, travelTime: 22, blocked: false },
+
+  // Connectivity edges for health centers and pharmacies
+  { id: "road_hc2_va", name: "Route HC2-A", from: "node_hc_2", to: "node_v_a", distance: 5.0, travelTime: 6, blocked: false },
+  { id: "road_hc3_vg", name: "Route HC3-G", from: "node_hc_3", to: "node_v_g", distance: 4.8, travelTime: 6, blocked: false },
+  { id: "road_ph1_hc1", name: "Route PH1-HC1", from: "node_ph_1", to: "node_hc_1", distance: 3.5, travelTime: 4, blocked: false },
+  { id: "road_ph2_hc", name: "Route PH2-HospC", from: "node_ph_2", to: "node_h_c", distance: 4.2, travelTime: 5, blocked: false },
+  { id: "road_ph3_vc", name: "Route PH3-C", from: "node_ph_3", to: "node_v_c", distance: 3.8, travelTime: 4, blocked: false }
 ];
 
 export const MOCK_AMBULANCES = [
