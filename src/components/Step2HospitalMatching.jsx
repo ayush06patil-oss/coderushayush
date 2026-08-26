@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { Building2, CheckCircle2, XCircle, ArrowRight, AlertTriangle } from 'lucide-react';
 
 export default function Step2HospitalMatching({ 
   currentEmergency, 
@@ -8,7 +8,8 @@ export default function Step2HospitalMatching({
 }) {
   const reqType = currentEmergency?.type || "Cardiology";
   const evaluationList = evaluationResult?.evaluationList || [];
-  const selectedHospital = evaluationResult?.selectedHospital || { id: "node_h_c", name: "Hospital C" };
+  const selectedHospital = evaluationResult?.selectedHospital || null;
+  const isSelectable = !!selectedHospital;
 
   return (
     <div className="card step-card step-2-card">
@@ -17,7 +18,7 @@ export default function Step2HospitalMatching({
           <Building2 size={18} className="text-primary" />
           Step 2: Healthcare Matching
         </h3>
-        <span className="badge badge-purple">Medical Constraint</span>
+        <span className="badge badge-purple">Medical & Road Reachability</span>
       </div>
 
       <div className="emergency-summary-banner">
@@ -36,7 +37,7 @@ export default function Step2HospitalMatching({
             >
               <div className="hosp-match-header">
                 <span className="hosp-match-name">{h.name}</span>
-                <span className="hosp-match-dist">{item.distanceKm} km</span>
+                <span className="hosp-match-dist">{item.distanceFormatted}</span>
               </div>
               <div className={`hosp-match-status ${item.isEligible ? 'text-success' : 'text-danger'}`}>
                 {item.isEligible ? (
@@ -56,13 +57,23 @@ export default function Step2HospitalMatching({
         })}
       </div>
 
-      <button 
-        onClick={() => onSelectDestination && onSelectDestination(selectedHospital.id || "node_h_c")}
-        className="btn btn-primary btn-full mt-3"
-      >
-        <span>SELECT {selectedHospital.name.toUpperCase()}</span>
-        <ArrowRight size={16} />
-      </button>
+      {isSelectable ? (
+        <button 
+          onClick={() => onSelectDestination && onSelectDestination(selectedHospital.id)}
+          className="btn btn-primary btn-full mt-3"
+        >
+          <span>SELECT {selectedHospital.name.toUpperCase()}</span>
+          <ArrowRight size={16} />
+        </button>
+      ) : (
+        <button 
+          disabled
+          className="btn btn-danger btn-full mt-3 disabled cursor-not-allowed"
+        >
+          <AlertTriangle size={16} />
+          <span>❌ NO SUITABLE HOSPITAL AVAILABLE</span>
+        </button>
+      )}
     </div>
   );
 }

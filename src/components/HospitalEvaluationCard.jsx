@@ -9,7 +9,7 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
   const { evaluationList, selectedHospital } = evaluationResult;
   const reqType = currentEmergency?.type || "Cardiology";
 
-  // Find Hospital B & Hospital C for the primary demo callout
+  // Find Hospital B & Hospital C for primary demo callout
   const hospB = evaluationList.find(e => e.hospital.id === "node_h_b") || evaluationList[0];
   const hospC = evaluationList.find(e => e.hospital.id === "node_h_c") || evaluationList[1];
 
@@ -22,10 +22,10 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
         <div>
           <h3 className="card-title inline-flex items-center gap-2 text-primary">
             <Building2 size={18} />
-            Hospital Evaluation (Healthcare Specialist Constraint)
+            Hospital Evaluation (Healthcare Specialist & Reachability Constraint)
           </h3>
           <p className="card-subtitle-text">
-            System evaluates medical requirements before running graph routing.
+            System evaluates medical requirements and road reachability before running graph routing.
           </p>
         </div>
         <button className="log-toggle-btn">
@@ -39,7 +39,7 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
           <div className="eval-demo-callout">
             <AlertCircle size={16} className="text-primary flex-shrink-0" />
             <span>
-              <strong>Nearest hospital ≠ Always best hospital:</strong> Hospital B was closer ({hospB?.distanceKm || 10} km), but rejected because the required {reqType.toLowerCase()} specialist was unavailable. Hospital C ({hospC?.distanceKm || 25} km) was selected because it satisfies all medical constraints.
+              <strong>Nearest hospital ≠ Always best hospital:</strong> Hospital B was closer ({hospB?.distanceFormatted || '18.9 km'}), but rejected because the required {reqType.toLowerCase()} specialist was unavailable. Hospital C ({hospC?.distanceFormatted || '34.3 km'}) was selected because it satisfies all medical and road reachability constraints.
             </span>
           </div>
 
@@ -57,7 +57,7 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
                   <div className="eval-item-header">
                     <div className="eval-item-title">
                       <span className="font-semibold text-main">{h.name}</span>
-                      <span className="eval-dist-tag">{item.distanceKm} km</span>
+                      <span className="eval-dist-tag">{item.distanceFormatted}</span>
                     </div>
 
                     <div className="eval-item-status">
