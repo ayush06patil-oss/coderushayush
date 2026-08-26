@@ -3,13 +3,12 @@ import { Building2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 
 export default function Step2HospitalMatching({ 
   currentEmergency, 
-  hospitals = [], 
+  evaluationResult, 
   onSelectDestination 
 }) {
-  const hospitalB = hospitals.find(h => h.id === "node_h_b") || { name: "Hospital B", distanceKm: 10, hasCardiologist: false };
-  const hospitalC = hospitals.find(h => h.id === "node_h_c") || { name: "Hospital C", distanceKm: 25, hasCardiologist: true, bedsAvailable: 72 };
-
-  const isCardiology = (currentEmergency?.type || "Cardiology") === "Cardiology";
+  const reqType = currentEmergency?.type || "Cardiology";
+  const evaluationList = evaluationResult?.evaluationList || [];
+  const selectedHospital = evaluationResult?.selectedHospital || { id: "node_h_c", name: "Hospital C" };
 
   return (
     <div className="card step-card step-2-card">
@@ -22,40 +21,46 @@ export default function Step2HospitalMatching({
       </div>
 
       <div className="emergency-summary-banner">
-        <span>Active Emergency: <strong>{currentEmergency?.id || "#101"}</strong> ({currentEmergency?.village || "Village A"} → <strong>{currentEmergency?.type || "Cardiology"}</strong>)</span>
+        <span>Active Emergency: <strong>{currentEmergency?.id || "#101"}</strong> ({currentEmergency?.village || "Village D"} → <strong>{reqType}</strong>)</span>
       </div>
 
       <div className="hospital-matching-list">
-        {/* Hospital B Option */}
-        <div className="hospital-match-item unavailable-card">
-          <div className="hosp-match-header">
-            <span className="hosp-match-name">{hospitalB.name}</span>
-            <span className="hosp-match-dist">{hospitalB.distanceKm || 10} km</span>
-          </div>
-          <div className="hosp-match-status text-danger">
-            <XCircle size={16} />
-            <span>{isCardiology ? "Cardiologist unavailable" : "Specialist unavailable"}</span>
-          </div>
-        </div>
+        {evaluationList.map((item) => {
+          const h = item.hospital;
+          const isSelected = selectedHospital && selectedHospital.id === h.id;
 
-        {/* Hospital C Option (Highlighted Destination) */}
-        <div className="hospital-match-item available-card highlighted-match">
-          <div className="hosp-match-header">
-            <span className="hosp-match-name">{hospitalC.name}</span>
-            <span className="hosp-match-dist">{hospitalC.distanceKm || 25} km</span>
-          </div>
-          <div className="hosp-match-status text-success">
-            <CheckCircle2 size={16} />
-            <span>On-Duty Cardiologist Available ({hospitalC.bedsAvailable || 72} beds)</span>
-          </div>
-        </div>
+          return (
+            <div 
+              key={h.id} 
+              className={`hospital-match-item ${isSelected ? 'available-card highlighted-match' : item.isEligible ? 'available-card' : 'unavailable-card'}`}
+            >
+              <div className="hosp-match-header">
+                <span className="hosp-match-name">{h.name}</span>
+                <span className="hosp-match-dist">{item.distanceKm} km</span>
+              </div>
+              <div className={`hosp-match-status ${item.isEligible ? 'text-success' : 'text-danger'}`}>
+                {item.isEligible ? (
+                  <>
+                    <CheckCircle2 size={16} />
+                    <span>On-Duty {reqType} Specialist Available ({h.bedsAvailable || 72} beds)</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle size={16} />
+                    <span>{item.rejectionReason}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <button 
-        onClick={() => onSelectDestination && onSelectDestination("node_h_c")}
+        onClick={() => onSelectDestination && onSelectDestination(selectedHospital.id || "node_h_c")}
         className="btn btn-primary btn-full mt-3"
       >
-        <span>SELECT HOSPITAL C</span>
+        <span>SELECT {selectedHospital.name.toUpperCase()}</span>
         <ArrowRight size={16} />
       </button>
     </div>

@@ -361,6 +361,75 @@ body {
   margin-bottom: 12px;
 }
 
+/* Hospital Evaluation Card */
+.hospital-evaluation-card {
+  border: 1px solid #BFDBFE;
+  background-color: #F8FAFC;
+}
+
+.eval-demo-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: var(--primary-blue-light);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--primary-blue);
+  line-height: 1.4;
+}
+
+.eval-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eval-item-card {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.eval-selected-card {
+  border: 2px solid var(--success-green);
+  background-color: #F0FDF4;
+}
+
+.eval-rejected-card {
+  border: 1px solid #FCA5A5;
+  background-color: #FFF5F5;
+}
+
+.eval-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eval-item-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eval-dist-tag {
+  font-size: 11px;
+  background-color: #F1F5F9;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.eval-item-details {
+  font-size: 12px;
+}
+
 /* Debug Panel */
 .debug-panel-card {
   border: 1px dashed var(--warning-amber);

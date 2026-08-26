@@ -8,6 +8,7 @@ import RouteResultCard from './components/RouteResultCard';
 import AmbulanceDispatchPanel from './components/AmbulanceDispatchPanel';
 import LiveResourcesCard from './components/LiveResourcesCard';
 import AlgorithmComparisonCard from './components/AlgorithmComparisonCard';
+import HospitalEvaluationCard from './components/HospitalEvaluationCard';
 import RoadFailureDemo from './components/RoadFailureDemo';
 import DecisionLogCollapsible from './components/DecisionLogCollapsible';
 import RouteDebugPanel from './components/RouteDebugPanel';
@@ -18,6 +19,8 @@ import { SimulationEngine } from './simulation/simulation';
 import { calculateRoute } from './algorithms/routingEngine';
 import { runBenchmark } from './algorithms/benchmark';
 import { findActivePathEdge } from './algorithms/routeValidator';
+import { evaluateHospitals, selectBestAmbulance } from './engine/healthcareMatcher';
+import { EmergencyPriorityQueue, getPriorityScore } from './engine/priorityQueue';
 import { interpolatePathPosition } from './utils/pathInterpolator';
 
 import { 
@@ -50,7 +53,8 @@ export default function App() {
   const [ambulanceSimState, setAmbulanceSimState] = useState({
     isDispatched: false,
     isPaused: false,
-    progressPct: 0
+    progressPct: 0,
+    assignedAmbulanceCode: "Ambulance #04"
   });
 
   // Unified Application State
@@ -61,10 +65,12 @@ export default function App() {
     hospitals: MOCK_NODES.filter(n => n.type === 'hospital'),
     doctors: MOCK_DOCTORS,
     logs: INITIAL_LOGS,
-    capacity: INITIAL_CAPACITY
+    capacity: INITIAL_CAPACITY,
+    bedsAvailableCount: 72,
+    medicineStockPct: 82
   });
 
-  // Graph instance initialization
+  // Graph instance initialization - updates automatically when appState.roads changes!
   const graph = useMemo(() => {
     const g = new RuralGraph();
     appState.nodes.forEach(n => g.addNode(n));
@@ -83,6 +89,18 @@ export default function App() {
     const foundNode = appState.nodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
     return foundNode ? foundNode.id : "node_v_d";
   };
+
+  // Phase 3: Dynamic Healthcare Evaluation Result
+  const evaluationResult = useMemo(() => {
+    const startId = getStartNodeId(currentEmergency);
+    return evaluateHospitals(
+      currentEmergency,
+      appState.hospitals,
+      { cardiacMedicine: { availablePct: appState.medicineStockPct } },
+      graph,
+      startId
+    );
+  }, [currentEmergency, appState.hospitals, appState.medicineStockPct, graph]);
 
   // Dynamic calculation of live ambulance coordinates on map
   const ambulancePos = useMemo(() => {
@@ -108,7 +126,7 @@ export default function App() {
                   id: Date.now(),
                   time: timestamp,
                   type: "assign",
-                  text: `Ambulance #02 arrived at Hospital C — Patient transferred successfully`
+                  text: `${prev.assignedAmbulanceCode} arrived at Hospital C — Patient transferred successfully`
                 },
                 ...aPrev.logs
               ]
@@ -140,10 +158,10 @@ export default function App() {
     };
 
     setCurrentEmergency(newEmergency);
-    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0 });
+    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0, assignedAmbulanceCode: "Ambulance #04" });
 
     const log1 = { id: Date.now(), time: timestamp, type: "create", text: `Emergency ${newId} created (${req.village})` };
-    const log2 = { id: Date.now() + 1, time: timestamp, type: "info", text: `${req.type} requirement detected` };
+    const log2 = { id: Date.now() + 1, time: timestamp, type: "info", text: `Required specialist: ${req.type}` };
 
     setAppState(prev => ({
       ...prev,
@@ -161,17 +179,43 @@ export default function App() {
 
     setTargetHospitalId(hospitalId);
 
-    const log = {
+    // Dynamic Phase 3 Ambulance Selection based on route travel time to emergency
+    const startId = getStartNodeId(currentEmergency);
+    const ambSelect = selectBestAmbulance(startId, appState.ambulances, graph);
+
+    const assignedCode = ambSelect.bestAmbulance ? ambSelect.bestAmbulance.code : "Ambulance #04";
+
+    const log1 = {
       id: Date.now(),
       time: timestamp,
-      type: "assign",
-      text: `${hospitalNode?.name || "Hospital C"} selected — cardiologist available`
+      type: "warning",
+      text: "Hospital B rejected — cardiologist unavailable"
     };
 
+    const log2 = {
+      id: Date.now() + 1,
+      time: timestamp,
+      type: "assign",
+      text: `${hospitalNode?.name || "Hospital C"} selected — cardiologist & bed available`
+    };
+
+    const log3 = {
+      id: Date.now() + 2,
+      time: timestamp,
+      type: "assign",
+      text: `${assignedCode} selected based on nearest route travel time`
+    };
+
+    // Decrement capacity state on assignment
     setAppState(prev => ({
       ...prev,
-      logs: [log, ...prev.logs]
+      bedsAvailableCount: Math.max(0, prev.bedsAvailableCount - 1),
+      medicineStockPct: Math.max(0, prev.medicineStockPct - 2),
+      hospitals: prev.hospitals.map(h => h.id === hospitalId ? { ...h, bedsAvailable: Math.max(0, h.bedsAvailable - 1) } : h),
+      logs: [log1, log2, log3, ...prev.logs]
     }));
+
+    setAmbulanceSimState(prev => ({ ...prev, assignedAmbulanceCode: assignedCode }));
 
     // Advance to Step 3: Routing Engine
     setCurrentStep(3);
@@ -196,7 +240,7 @@ export default function App() {
 
     setRouteResult(res);
     setBenchmarkResult(bench);
-    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0 });
+    setAmbulanceSimState(prev => ({ ...prev, isDispatched: false, isPaused: false, progressPct: 0 }));
 
     const log1 = {
       id: Date.now(),
@@ -346,17 +390,18 @@ export default function App() {
   // DISPATCH HANDLERS: Dispatch, Pause/Resume, Reset Ambulance Simulation
   const handleDispatchAmbulance = () => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-    setAmbulanceSimState({
+    setAmbulanceSimState(prev => ({
+      ...prev,
       isDispatched: true,
       isPaused: false,
       progressPct: 0
-    });
+    }));
 
     const log = {
       id: Date.now(),
       time: timestamp,
       type: "assign",
-      text: `Ambulance #02 dispatched to ${currentEmergency?.village || "Village D"}`
+      text: `${ambulanceSimState.assignedAmbulanceCode} dispatched to ${currentEmergency?.village || "Village D"}`
     };
     setAppState(prev => ({
       ...prev,
@@ -369,7 +414,7 @@ export default function App() {
   };
 
   const handleResetAmbulance = () => {
-    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0 });
+    setAmbulanceSimState(prev => ({ ...prev, isDispatched: false, isPaused: false, progressPct: 0 }));
   };
 
   // Auto-calculate initial demo route on mount
@@ -420,7 +465,7 @@ export default function App() {
               {currentStep === 2 && (
                 <Step2HospitalMatching 
                   currentEmergency={currentEmergency}
-                  hospitals={appState.hospitals}
+                  evaluationResult={evaluationResult}
                   onSelectDestination={handleSelectDestination}
                 />
               )}
@@ -447,7 +492,7 @@ export default function App() {
               {/* Step 4: Ambulance Dispatch & Telemetry Panel */}
               {currentStep >= 4 && (
                 <AmbulanceDispatchPanel 
-                  ambulanceCode="Ambulance #02"
+                  ambulanceCode={ambulanceSimState.assignedAmbulanceCode}
                   from={currentEmergency?.village || "Village D"}
                   to="Hospital C"
                   totalDistance={routeResult?.distance || 19.6}
@@ -480,15 +525,21 @@ export default function App() {
           <LiveResourcesCard 
             ambulancesAvailableStr={ambulanceSimState.isDispatched ? "4 / 8" : "5 / 8"}
             hospitalsOnline={appState.hospitals.length}
-            bedsAvailable={72}
+            bedsAvailable={appState.bedsAvailableCount}
             bedsTotal={100}
-            medicinePct={82}
+            medicinePct={appState.medicineStockPct}
           />
 
           {/* 5. Algorithm Comparison Card (Dijkstra vs A*) */}
           {benchmarkResult && (
             <AlgorithmComparisonCard benchmarkResult={benchmarkResult} />
           )}
+
+          {/* Transparent Hospital Evaluation Card (Phase 3 Constraint Display) */}
+          <HospitalEvaluationCard 
+            evaluationResult={evaluationResult}
+            currentEmergency={currentEmergency}
+          />
 
           {/* Dev Debug Panel for Path & Metric Audit */}
           <RouteDebugPanel 

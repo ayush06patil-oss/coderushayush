@@ -1,6 +1,6 @@
-import { runDijkstra } from './dijkstra';
-import { runAStar } from './astar';
-import { validateRoute } from './routeValidator';
+import { runDijkstra } from './dijkstra.js';
+import { runAStar } from './astar.js';
+import { validateRoute } from './routeValidator.js';
 
 /**
  * Standardized Routing Engine Wrapper
