@@ -1006,7 +1006,7 @@ body {
 
 /* Map Component Styles — Sticky & Viewport-Constrained */
 .map-card {
-  background-color: #EEF2F6;
+  background-color: #F8FAFC;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-card);
   padding: 18px;
@@ -1077,29 +1077,24 @@ body {
   pointer-events: none;
 }
 
-.road-line-normal { stroke: #CBD5E1; stroke-width: 1.8; }
-.road-line-selected { stroke: var(--primary-blue); stroke-width: 3.2; stroke-linecap: round; }
-.road-line-blocked { stroke: var(--danger-red); stroke-width: 2.2; stroke-dasharray: 3,3; }
-
-.map-time-label {
-  position: absolute;
-  background-color: white;
-  border: 1px solid var(--border-color);
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
-  transform: translate(-50%, -50%);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  pointer-events: none;
-  white-space: nowrap;
+.active-route-polyline {
+  stroke-dasharray: none;
+  filter: drop-shadow(0px 2px 4px rgba(37, 99, 235, 0.3));
 }
 
-.map-time-label.active-path-label {
+.midpoint-time-tag {
+  position: absolute;
+  transform: translate(-50%, -100%);
   background-color: var(--primary-blue);
   color: white;
-  border-color: var(--primary-blue);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+  z-index: 15;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .node-badge {
@@ -1126,14 +1121,28 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+.node-badge.origin-badge {
+  border: 2px solid var(--primary-blue) !important;
+  background-color: #EFF6FF;
+  color: var(--primary-blue);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  z-index: 12;
+}
+
+.node-badge.destination-badge {
+  border: 2px solid var(--danger-red) !important;
+  background-color: #FEE2E2;
+  color: var(--danger-red);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
+  z-index: 12;
+}
+
 .node-badge.selected-node-highlight {
   border: 2px solid var(--primary-blue) !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3) !important;
   transform: translate(-50%, -55%) scale(1.08);
-}
-
-.node-badge.in-path-node {
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
 .node-badge.village { color: var(--primary-blue); border-color: #BFDBFE; }
@@ -1155,14 +1164,14 @@ body {
   justify-content: center;
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
   cursor: pointer;
-  z-index: 8;
+  z-index: 18;
   animation: pulse-ring 2s infinite;
 }
 
 .map-ambulance-marker.dispatched-active {
   background-color: var(--purple-accent);
   box-shadow: 0 0 0 5px rgba(124, 58, 237, 0.35);
-  z-index: 15;
+  z-index: 20;
 }
 
 @keyframes pulse-ring {
@@ -1178,7 +1187,7 @@ body {
   padding: 12px 14px;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-md);
-  z-index: 20;
+  z-index: 25;
   width: 220px;
   font-size: 12px;
 }
