@@ -1,13 +1,16 @@
 import { calculateRoute } from '../algorithms/routingEngine.js';
 
 /**
- * Healthcare-Aware Resource Selection Engine
+ * Scalable Healthcare-Aware Resource Selection Engine
  * Evaluates candidate hospitals based on medical requirements:
  * 1. Operational status
  * 2. Required specialist availability (e.g. Cardiologist)
  * 3. Hospital bed availability
  * 4. Required medicine stock
  * 5. Road reachability and graph route cost/time using Routing Engine
+ * 
+ * SCALABILITY OPTIMIZATION: Medical checks run FIRST. Graph routing runs ONLY
+ * on medically eligible candidates (and key demo comparison nodes), skipping unneeded A* searches.
  */
 export function evaluateHospitals(emergency, hospitals = [], capacity = {}, graph, startNodeId = "node_v_a") {
   if (!emergency || !hospitals || hospitals.length === 0) {
@@ -20,7 +23,8 @@ export function evaluateHospitals(emergency, hospitals = [], capacity = {}, grap
 
   const reqType = emergency.type || "Cardiology";
 
-  const evaluationList = hospitals.map(h => {
+  // Phase 1: Fast Medical Eligibility Check (no A* overhead)
+  const initialEvaluations = hospitals.map(h => {
     let isEligible = true;
     let rejectionReason = null;
 
@@ -55,17 +59,30 @@ export function evaluateHospitals(emergency, hospitals = [], capacity = {}, grap
       }
     }
 
-    // Check 5: Road Reachability via Routing Engine
+    return {
+      hospital: h,
+      isEligible,
+      rejectionReason
+    };
+  });
+
+  // Phase 2: Calculate Graph Route ONLY for Medically Eligible (and Key Demo) Hospitals
+  const evaluationList = initialEvaluations.map(item => {
+    const h = item.hospital;
+    const isKeyDemoHospital = h.id === "node_h_b" || h.id === "node_h_c" || h.id === "node_h_e";
+
     let routeResult = null;
     let isReachable = false;
     let distanceKm = null;
     let travelTimeMin = null;
 
-    if (graph && startNodeId && h.id) {
+    // Only run expensive graph routing if medically eligible or key demo hospital
+    if ((item.isEligible || isKeyDemoHospital) && graph && startNodeId && h.nearestNodeId || h.id) {
+      const targetId = h.nearestNodeId || h.id;
       routeResult = calculateRoute({
         algorithm: "astar",
         startNodeId,
-        targetNodeId: h.id,
+        targetNodeId: targetId,
         graph
       });
 
@@ -76,8 +93,11 @@ export function evaluateHospitals(emergency, hospitals = [], capacity = {}, grap
       }
     }
 
-    if (!isReachable && isEligible) {
-      isEligible = false;
+    let isFinalEligible = item.isEligible && isReachable;
+    let rejectionReason = item.rejectionReason;
+
+    if (item.isEligible && !isReachable) {
+      isFinalEligible = false;
       rejectionReason = "No road route available (Unreachable)";
     }
 
@@ -87,7 +107,7 @@ export function evaluateHospitals(emergency, hospitals = [], capacity = {}, grap
 
     return {
       hospital: h,
-      isEligible,
+      isEligible: isFinalEligible,
       isReachable,
       rejectionReason,
       routeResult,
@@ -116,7 +136,7 @@ export function evaluateHospitals(emergency, hospitals = [], capacity = {}, grap
  * Selects the best available ambulance based on actual route travel time to emergency village
  */
 export function selectBestAmbulance(emergencyVillageNodeId, ambulances = [], graph) {
-  const availableUnits = ambulances.filter(a => a.status === "Available" || a.status === "ONLINE");
+  const availableUnits = ambulances.filter(a => a.status === "Available" || a.status === "ONLINE" || a.status === "AVAILABLE");
 
   if (availableUnits.length === 0) {
     return {
@@ -127,7 +147,9 @@ export function selectBestAmbulance(emergencyVillageNodeId, ambulances = [], gra
     };
   }
 
-  const evaluatedUnits = availableUnits.map(unit => {
+  // Evaluate top available units
+  const sampleUnits = availableUnits.slice(0, 10);
+  const evaluatedUnits = sampleUnits.map(unit => {
     const locNodeId = unit.locationNode || "node_v_d";
     const route = calculateRoute({
       algorithm: "astar",

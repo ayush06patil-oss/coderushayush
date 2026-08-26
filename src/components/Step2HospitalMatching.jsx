@@ -11,6 +11,11 @@ export default function Step2HospitalMatching({
   const selectedHospital = evaluationResult?.selectedHospital || null;
   const isSelectable = !!selectedHospital;
 
+  // Filter to show eligible hospitals and key demo comparison candidate (Hospital B)
+  const displayedMatches = evaluationList.filter(item => 
+    item.isEligible || item.hospital.id === "node_h_b" || item.hospital.name.includes("Hospital B")
+  );
+
   return (
     <div className="card step-card step-2-card">
       <div className="card-header-row">
@@ -25,36 +30,39 @@ export default function Step2HospitalMatching({
         <span>Active Emergency: <strong>{currentEmergency?.id || "#101"}</strong> ({currentEmergency?.village || "Village D"} → <strong>{reqType}</strong>)</span>
       </div>
 
-      <div className="hospital-matching-list">
-        {evaluationList.map((item) => {
-          const h = item.hospital;
-          const isSelected = selectedHospital && selectedHospital.id === h.id;
+      {/* Scrollable Matching Candidates List */}
+      <div className="hospital-matching-scroll-container">
+        <div className="hospital-matching-list">
+          {displayedMatches.map((item) => {
+            const h = item.hospital;
+            const isSelected = selectedHospital && selectedHospital.id === h.id;
 
-          return (
-            <div 
-              key={h.id} 
-              className={`hospital-match-item ${isSelected ? 'available-card highlighted-match' : item.isEligible ? 'available-card' : 'unavailable-card'}`}
-            >
-              <div className="hosp-match-header">
-                <span className="hosp-match-name">{h.name}</span>
-                <span className="hosp-match-dist">{item.distanceFormatted}</span>
+            return (
+              <div 
+                key={h.id} 
+                className={`hospital-match-item ${isSelected ? 'available-card highlighted-match' : item.isEligible ? 'available-card' : 'unavailable-card'}`}
+              >
+                <div className="hosp-match-header">
+                  <span className="hosp-match-name">{h.name}</span>
+                  <span className="hosp-match-dist">{item.distanceFormatted}</span>
+                </div>
+                <div className={`hosp-match-status ${item.isEligible ? 'text-success' : 'text-danger'}`}>
+                  {item.isEligible ? (
+                    <>
+                      <CheckCircle2 size={16} />
+                      <span>On-Duty {reqType} Specialist Available ({h.bedsAvailable || 72} beds)</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle size={16} />
+                      <span>{item.rejectionReason}</span>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className={`hosp-match-status ${item.isEligible ? 'text-success' : 'text-danger'}`}>
-                {item.isEligible ? (
-                  <>
-                    <CheckCircle2 size={16} />
-                    <span>On-Duty {reqType} Specialist Available ({h.bedsAvailable || 72} beds)</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle size={16} />
-                    <span>{item.rejectionReason}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {isSelectable ? (
