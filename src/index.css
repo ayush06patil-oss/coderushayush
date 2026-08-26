@@ -674,9 +674,30 @@ body {
   margin-bottom: 12px;
 }
 
+.route-comparison-text {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .resilience-actions {
   display: flex;
   gap: 12px;
+}
+
+.btn-outline-secondary {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+
+.btn-outline-secondary:hover:not(:disabled) {
+  background-color: #F1F5F9;
+}
+
+.btn.disabled, .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .resilience-explanation-note {
@@ -689,6 +710,21 @@ body {
   font-size: 11px;
   color: var(--primary-blue);
 }
+
+/* Badges */
+.badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-success { background-color: var(--success-green-light); color: var(--success-green); }
+.badge-danger { background-color: var(--danger-red-light); color: var(--danger-red); }
+.badge-purple { background-color: var(--purple-accent-light); color: var(--purple-accent); }
+.badge-warning { background-color: var(--warning-amber-light); color: var(--warning-amber); }
 
 /* Decision Log */
 .decision-log-collapsible .log-item {
@@ -997,6 +1033,7 @@ body {
 
 .mt-2 { margin-top: 8px; }
 .mt-3 { margin-top: 12px; }
+.mx-2 { margin-left: 8px; margin-right: 8px; }
 
 /* Helper Utility Classes */
 .font-semibold { font-weight: 600; }

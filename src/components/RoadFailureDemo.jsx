@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
-import { ShieldAlert, RefreshCw, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { ShieldAlert, RefreshCw, AlertTriangle, CheckCircle2, Info, RotateCcw } from 'lucide-react';
 
 export default function RoadFailureDemo({ 
-  currentPathNames = ["Village D", "Village B", "Hospital C"], 
-  isRoadBlocked, 
+  currentPathNames = ["Village D", "Hospital B", "Hospital C"], 
+  previousPathNames = [],
+  previousDistance = null,
+  newDistance = null,
+  blockedEdgeInfo = null,
+  isRoadBlocked = false,
   onBlockRoad, 
   onRecalculateRoute,
-  hasAlternativeRoute
+  onResetRoad,
+  hasAlternativeRoute = true
 }) {
   const [hasRecalculated, setHasRecalculated] = useState(false);
 
@@ -18,6 +23,11 @@ export default function RoadFailureDemo({
   const handleRecalculateClick = () => {
     setHasRecalculated(true);
     if (onRecalculateRoute) onRecalculateRoute();
+  };
+
+  const handleResetClick = () => {
+    setHasRecalculated(false);
+    if (onResetRoad) onResetRoad();
   };
 
   return (
@@ -32,9 +42,12 @@ export default function RoadFailureDemo({
             Simulate a blocked road and verify that the routing engine finds an alternative path.
           </p>
         </div>
-        <span className="badge badge-purple">Optional Demo</span>
+        <span className={`badge ${isRoadBlocked ? 'badge-danger' : 'badge-success'}`}>
+          {isRoadBlocked ? 'Road Block Active' : 'Roads Operational'}
+        </span>
       </div>
 
+      {/* Current Active Route Display */}
       <div className="current-route-display">
         <span className="route-display-label">Current Route:</span>
         <div className="route-path-chips">
@@ -47,24 +60,46 @@ export default function RoadFailureDemo({
         </div>
       </div>
 
-      {isRoadBlocked && (
+      {/* Road Blocked Banner */}
+      {isRoadBlocked && blockedEdgeInfo && (
         <div className="road-blocked-status-banner">
           <AlertTriangle size={16} className="text-danger flex-shrink-0" />
-          <span>⚠ ROAD BLOCKED — Road R17 on the current route is unavailable.</span>
+          <span>
+            ⚠ ROAD BLOCKED — Road <strong>{blockedEdgeInfo.fromName} → {blockedEdgeInfo.toName}</strong> is unavailable.
+          </span>
         </div>
       )}
 
-      {hasRecalculated && hasAlternativeRoute && (
-        <div className="alt-route-found-banner">
-          <CheckCircle2 size={16} className="text-success flex-shrink-0" />
-          <span>✓ ALTERNATIVE ROUTE FOUND (Algorithm rerouted around blocked road)</span>
-        </div>
+      {/* Recalculated Results Banner */}
+      {hasRecalculated && (
+        hasAlternativeRoute ? (
+          <div className="alt-route-found-banner">
+            <CheckCircle2 size={16} className="text-success flex-shrink-0" />
+            <div className="flex-flex-col">
+              <span className="font-semibold">✓ ALTERNATIVE ROUTE FOUND</span>
+              {previousDistance && newDistance && (
+                <div className="route-comparison-text">
+                  <span>Previous: {previousDistance} km</span>
+                  <span className="mx-2">→</span>
+                  <span className="text-success font-semibold">New: {newDistance} km</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="road-blocked-status-banner">
+            <AlertTriangle size={16} className="text-danger flex-shrink-0" />
+            <span>❌ NO ALTERNATIVE ROUTE AVAILABLE — Destination unreachable without blocked edge.</span>
+          </div>
+        )
       )}
 
-      <div className="resilience-actions">
+      {/* Control Buttons */}
+      <div className="resilience-actions mt-2">
         <button 
           onClick={handleBlockClick} 
-          className={`btn ${isRoadBlocked ? 'btn-danger' : 'btn-warning'} flex-1`}
+          disabled={isRoadBlocked}
+          className={`btn ${isRoadBlocked ? 'btn-secondary disabled' : 'btn-warning'} flex-1`}
         >
           <AlertTriangle size={16} />
           <span>{isRoadBlocked ? 'ROAD BLOCKED' : 'SIMULATE ROAD BLOCK'}</span>
@@ -77,6 +112,16 @@ export default function RoadFailureDemo({
         >
           <RefreshCw size={16} />
           <span>RECALCULATE ROUTE</span>
+        </button>
+
+        <button 
+          onClick={handleResetClick}
+          disabled={!isRoadBlocked && !hasRecalculated}
+          className="btn btn-outline-secondary"
+          title="Reset Road & Restore Route"
+        >
+          <RotateCcw size={16} />
+          <span>RESET ROAD</span>
         </button>
       </div>
 

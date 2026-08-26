@@ -3,6 +3,36 @@
  * Calculates exact totalDistance, totalTravelTime, and edge breakdown from path node pairs.
  */
 
+export function findActivePathEdge(path, roads, nodes = []) {
+  if (!path || !Array.isArray(path) || path.length < 2 || !roads) {
+    return null;
+  }
+
+  // Pick the first consecutive pair in the path
+  const u = path[0];
+  const v = path[1];
+
+  const matchedRoad = roads.find(r => 
+    (r.from === u && r.to === v) || (r.from === v && r.to === u)
+  );
+
+  if (!matchedRoad) return null;
+
+  const uNode = nodes.find(n => n.id === u);
+  const vNode = nodes.find(n => n.id === v);
+
+  return {
+    roadId: matchedRoad.id,
+    roadName: matchedRoad.name,
+    fromId: u,
+    toId: v,
+    fromName: uNode?.name || u,
+    toName: vNode?.name || v,
+    distance: matchedRoad.distance,
+    travelTime: matchedRoad.travelTime
+  };
+}
+
 export function calculatePathMetrics(path, graph) {
   if (!path || !Array.isArray(path) || path.length < 2 || !graph) {
     return {
@@ -51,6 +81,7 @@ export function calculatePathMetrics(path, graph) {
     totalDistance += edgeObj.distance;
     totalTravelTime += edgeObj.travelTime;
     edges.push({
+      id: edgeObj.id,
       from: uNode?.name || u,
       to: vNode?.name || v,
       distance: edgeObj.distance,

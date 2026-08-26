@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Bug, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { calculatePathMetrics } from '../algorithms/routeValidator';
 
-export default function RouteDebugPanel({ routeResult, graph }) {
+export default function RouteDebugPanel({ routeResult, graph, blockedEdgeInfo }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  if (!routeResult || !routeResult.path || routeResult.path.length === 0) return null;
+  if (!routeResult) return null;
 
   const metrics = calculatePathMetrics(routeResult.path, graph);
 
@@ -32,8 +32,17 @@ export default function RouteDebugPanel({ routeResult, graph }) {
           </div>
 
           <div className="debug-row">
+            <span className="debug-label">Active Blocked Edge:</span>
+            <span className={`debug-val font-semibold ${blockedEdgeInfo ? 'text-danger' : 'text-success'}`}>
+              {blockedEdgeInfo ? `${blockedEdgeInfo.roadName} (${blockedEdgeInfo.fromName} → ${blockedEdgeInfo.toName})` : 'None (Roads Operational)'}
+            </span>
+          </div>
+
+          <div className="debug-row">
             <span className="debug-label">Raw Path IDs:</span>
-            <span className="debug-val code-text">[{routeResult.path.join(", ")}]</span>
+            <span className="debug-val code-text">
+              {routeResult.path && routeResult.path.length > 0 ? `[${routeResult.path.join(", ")}]` : '[] (No Route)'}
+            </span>
           </div>
 
           <div className="debug-row">
@@ -46,7 +55,7 @@ export default function RouteDebugPanel({ routeResult, graph }) {
             <span className="debug-val font-semibold">{metrics.travelTime} min (Result: {routeResult.travelTime} min)</span>
           </div>
 
-          {!metrics.isValid && (
+          {!metrics.isValid && routeResult.status !== "NO_ROUTE" && (
             <div className="no-route-banner mt-2">
               <AlertTriangle size={16} className="text-danger flex-shrink-0" />
               <span>ERROR: {metrics.error}</span>

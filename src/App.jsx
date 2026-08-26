@@ -17,6 +17,7 @@ import { RuralGraph } from './graph/graph';
 import { SimulationEngine } from './simulation/simulation';
 import { calculateRoute } from './algorithms/routingEngine';
 import { runBenchmark } from './algorithms/benchmark';
+import { findActivePathEdge } from './algorithms/routeValidator';
 
 import { 
   MOCK_NODES, 
@@ -37,9 +38,12 @@ export default function App() {
   // Active Emergency State
   const [currentEmergency, setCurrentEmergency] = useState(INITIAL_EMERGENCY);
 
-  // Routing Results State
+  // Routing Results & Resilience State
   const [routeResult, setRouteResult] = useState(null);
   const [benchmarkResult, setBenchmarkResult] = useState(null);
+  const [blockedEdgeInfo, setBlockedEdgeInfo] = useState(null);
+  const [previousDistance, setPreviousDistance] = useState(null);
+  const [previousPathNames, setPreviousPathNames] = useState([]);
 
   // Unified Application State
   const [appState, setAppState] = useState({
@@ -52,7 +56,7 @@ export default function App() {
     capacity: INITIAL_CAPACITY
   });
 
-  // Graph instance initialization
+  // Graph instance initialization - updates automatically when appState.roads changes!
   const graph = useMemo(() => {
     const g = new RuralGraph();
     appState.nodes.forEach(n => g.addNode(n));
@@ -167,29 +171,50 @@ export default function App() {
     setCurrentStep(4);
   };
 
-  // RESILIENCE HANDLER: Block Route Road
+  // RESILIENCE HANDLER 1: Block a Road Actually Present on Active Route
   const handleBlockRouteRoad = () => {
+    if (!routeResult || !routeResult.path || routeResult.path.length < 2) return;
+
+    // Dynamically find an edge that is ACTUALLY present on the current algorithm path
+    const activeEdge = findActivePathEdge(routeResult.path, appState.roads, appState.nodes);
+
+    if (!activeEdge) return;
+
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-    simEngine.triggerEvent("road_block_r17", appState, setAppState);
 
-    const log = {
-      id: Date.now(),
-      time: timestamp,
-      type: "warning",
-      text: "Road R17 blocked on active route"
-    };
+    // Store previous metrics for comparison display
+    setPreviousDistance(routeResult.distance);
+    setPreviousPathNames(
+      routeResult.path.map(id => appState.nodes.find(n => n.id === id)?.name || id)
+    );
 
+    // Save blocked edge details
+    setBlockedEdgeInfo(activeEdge);
+
+    // Update appState.roads to mark this specific edge as blocked
     setAppState(prev => ({
       ...prev,
-      logs: [log, ...prev.logs]
+      roads: prev.roads.map(r => 
+        r.id === activeEdge.roadId ? { ...r, blocked: true } : r
+      ),
+      logs: [
+        {
+          id: Date.now(),
+          time: timestamp,
+          type: "warning",
+          text: `Road ${activeEdge.roadName} (${activeEdge.fromName} → ${activeEdge.toName}) blocked on active route`
+        },
+        ...prev.logs
+      ]
     }));
   };
 
-  // RESILIENCE HANDLER: Re-Calculate Route
+  // RESILIENCE HANDLER 2: Re-Calculate Route Against Updated Graph
   const handleRecalculateRoute = () => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
 
+    // Run selected algorithm on updated graph with blocked edge
     const newRes = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
@@ -223,6 +248,50 @@ export default function App() {
     }));
   };
 
+  // RESILIENCE HANDLER 3: Reset Road to Unblocked State
+  const handleResetRoad = () => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const startId = getStartNodeId(currentEmergency);
+
+    // Reset all roads to unblocked in appState
+    const unblockedRoads = appState.roads.map(r => ({ ...r, blocked: false }));
+
+    // Re-build clean graph
+    const cleanGraph = new RuralGraph();
+    appState.nodes.forEach(n => cleanGraph.addNode(n));
+    unblockedRoads.forEach(r => cleanGraph.addEdge(r));
+
+    // Re-run algorithm on unblocked graph
+    const originalRes = calculateRoute({
+      algorithm: selectedAlgorithm,
+      startNodeId: startId,
+      targetNodeId: targetHospitalId,
+      graph: cleanGraph
+    });
+
+    const bench = runBenchmark(startId, targetHospitalId, cleanGraph);
+
+    setRouteResult(originalRes);
+    setBenchmarkResult(bench);
+    setBlockedEdgeInfo(null);
+    setPreviousDistance(null);
+    setPreviousPathNames([]);
+
+    setAppState(prev => ({
+      ...prev,
+      roads: unblockedRoads,
+      logs: [
+        {
+          id: Date.now(),
+          time: timestamp,
+          type: "assign",
+          text: `Road unblocked, original optimal route restored (${originalRes.distance} km)`
+        },
+        ...prev.logs
+      ]
+    }));
+  };
+
   // DISPATCH HANDLER: Dispatch Ambulance
   const handleDispatchAmbulance = () => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -252,7 +321,7 @@ export default function App() {
     setBenchmarkResult(bench);
   }, []);
 
-  const isRoadR17Blocked = appState.roads.find(r => r.id === "road_r17")?.blocked;
+  const isRoadBlockedState = !!blockedEdgeInfo;
 
   const currentPathNodeNames = (routeResult?.path || [])
     .map(id => appState.nodes.find(n => n.id === id)?.name || id);
@@ -350,14 +419,23 @@ export default function App() {
           )}
 
           {/* Dev Debug Panel for Path & Metric Audit */}
-          <RouteDebugPanel routeResult={routeResult} graph={graph} />
+          <RouteDebugPanel 
+            routeResult={routeResult} 
+            graph={graph} 
+            blockedEdgeInfo={blockedEdgeInfo}
+          />
 
           {/* 6. Optional Test Routing Resilience (Road Block & Re-Routing Demo) */}
           <RoadFailureDemo 
             currentPathNames={currentPathNodeNames}
-            isRoadBlocked={isRoadR17Blocked}
+            previousPathNames={previousPathNames}
+            previousDistance={previousDistance}
+            newDistance={routeResult?.distance}
+            blockedEdgeInfo={blockedEdgeInfo}
+            isRoadBlocked={isRoadBlockedState}
             onBlockRoad={handleBlockRouteRoad}
             onRecalculateRoute={handleRecalculateRoute}
+            onResetRoad={handleResetRoad}
             hasAlternativeRoute={routeResult?.status === "FOUND"}
           />
 
