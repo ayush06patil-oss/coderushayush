@@ -138,6 +138,18 @@ export default function App() {
     );
   }, [currentEmergency, activeHospitals, appState.medicineStockPct, activeGraph]);
 
+  // Dynamic Target Hospital resolution (eliminating hardcoded "Hospital C")
+  const activeTargetHospital = useMemo(() => {
+    return activeHospitals.find(h => h.id === targetHospitalId) || activeHospitals[0];
+  }, [activeHospitals, targetHospitalId]);
+
+  // Auto-sync targetHospitalId when evaluationResult yields selected hospital
+  useEffect(() => {
+    if (evaluationResult && evaluationResult.selectedHospital) {
+      setTargetHospitalId(evaluationResult.selectedHospital.id);
+    }
+  }, [evaluationResult?.selectedHospital?.id]);
+
   // Dynamic calculation of live ambulance coordinates on map
   const ambulancePos = useMemo(() => {
     const path = routeResult?.path || [];
@@ -162,7 +174,7 @@ export default function App() {
                   id: Date.now(),
                   time: timestamp,
                   type: "assign",
-                  text: `${prev.assignedAmbulanceCode} arrived at Hospital C — Patient transferred successfully`
+                  text: `${prev.assignedAmbulanceCode} arrived at ${activeTargetHospital.name} — Patient transferred successfully`
                 },
                 ...aPrev.logs
               ]
@@ -177,7 +189,7 @@ export default function App() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [ambulanceSimState.isDispatched, ambulanceSimState.isPaused, ambulanceSimState.progressPct]);
+  }, [ambulanceSimState.isDispatched, ambulanceSimState.isPaused, ambulanceSimState.progressPct, activeTargetHospital]);
 
   // STEP 1 HANDLER: Create Emergency
   const handleCreateEmergency = (req) => {
@@ -208,10 +220,10 @@ export default function App() {
     setCurrentStep(2);
   };
 
-  // STEP 2 HANDLER: Select Hospital Destination
+  // STEP 2 HANDLER: Select Hospital Destination dynamically
   const handleSelectDestination = (hospitalId) => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const hospitalNode = activeNodes.find(n => n.id === hospitalId);
+    const hospitalNode = activeHospitals.find(h => h.id === hospitalId) || activeNodes.find(n => n.id === hospitalId);
 
     setTargetHospitalId(hospitalId);
 
@@ -224,19 +236,12 @@ export default function App() {
     const log1 = {
       id: Date.now(),
       time: timestamp,
-      type: "warning",
-      text: "Hospital B rejected — cardiologist unavailable"
+      type: "assign",
+      text: `${hospitalNode?.name || "Hospital"} selected — specialist & bed available`
     };
 
     const log2 = {
       id: Date.now() + 1,
-      time: timestamp,
-      type: "assign",
-      text: `${hospitalNode?.name || "Hospital C"} selected — cardiologist & bed available`
-    };
-
-    const log3 = {
-      id: Date.now() + 2,
       time: timestamp,
       type: "assign",
       text: `${assignedCode} selected based on nearest route travel time`
@@ -247,10 +252,19 @@ export default function App() {
       bedsAvailableCount: Math.max(0, prev.bedsAvailableCount - 1),
       medicineStockPct: Math.max(0, prev.medicineStockPct - 2),
       hospitals: prev.hospitals.map(h => h.id === hospitalId ? { ...h, bedsAvailable: Math.max(0, h.bedsAvailable - 1) } : h),
-      logs: [log1, log2, log3, ...prev.logs]
+      logs: [log1, log2, ...prev.logs]
     }));
 
     setAmbulanceSimState(prev => ({ ...prev, assignedAmbulanceCode: assignedCode }));
+
+    // Run route calculation for selected destination
+    const res = calculateRoute({
+      algorithm: selectedAlgorithm,
+      startNodeId: startId,
+      targetNodeId: hospitalNode?.nearestNodeId || hospitalId,
+      graph: activeGraph
+    });
+    setRouteResult(res);
 
     // Advance to Step 3: Routing Engine
     setCurrentStep(3);
@@ -262,16 +276,18 @@ export default function App() {
     const startId = getStartNodeId(currentEmergency);
     const algoToRun = algoOverride || selectedAlgorithm;
 
+    const targetNodeId = activeTargetHospital?.nearestNodeId || targetHospitalId;
+
     // Run algorithm calculation
     const res = calculateRoute({
       algorithm: algoToRun,
       startNodeId: startId,
-      targetNodeId: targetHospitalId,
+      targetNodeId,
       graph: activeGraph
     });
 
     // Run dual benchmark
-    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
+    const bench = runBenchmark(startId, targetNodeId, activeGraph);
 
     setRouteResult(res);
     setBenchmarkResult(bench);
@@ -288,7 +304,7 @@ export default function App() {
       time: timestamp,
       type: res.status === "FOUND" ? "assign" : "warning",
       text: res.status === "FOUND" 
-        ? `Optimal route found — ${res.distance} km (${res.travelTime} min)`
+        ? `Optimal route found to ${activeTargetHospital.name} — ${res.distance} km (${res.travelTime} min)`
         : `No valid route available`
     };
 
@@ -344,15 +360,16 @@ export default function App() {
   const handleRecalculateRoute = () => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
+    const targetNodeId = activeTargetHospital?.nearestNodeId || targetHospitalId;
 
     const newRes = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
-      targetNodeId: targetHospitalId,
+      targetNodeId,
       graph: activeGraph
     });
 
-    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
+    const bench = runBenchmark(startId, targetNodeId, activeGraph);
 
     setRouteResult(newRes);
     setBenchmarkResult(bench);
@@ -368,7 +385,7 @@ export default function App() {
       time: timestamp,
       type: newRes.status === "FOUND" ? "assign" : "warning",
       text: newRes.status === "FOUND"
-        ? `Alternative route found: ${newRes.distance} km (${newRes.travelTime} min)`
+        ? `Alternative route found to ${activeTargetHospital.name}: ${newRes.distance} km (${newRes.travelTime} min)`
         : `No valid route available after road blockage`
     };
 
@@ -382,6 +399,7 @@ export default function App() {
   const handleResetRoad = () => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
+    const targetNodeId = activeTargetHospital?.nearestNodeId || targetHospitalId;
 
     if (blockedEdgeInfo) {
       activeGraph.setRoadBlocked(blockedEdgeInfo.roadId, false);
@@ -392,11 +410,11 @@ export default function App() {
     const originalRes = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
-      targetNodeId: targetHospitalId,
+      targetNodeId,
       graph: activeGraph
     });
 
-    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
+    const bench = runBenchmark(startId, targetNodeId, activeGraph);
 
     setRouteResult(originalRes);
     setBenchmarkResult(bench);
@@ -452,16 +470,18 @@ export default function App() {
   // Auto-calculate initial demo route on mount and when networkMode changes
   useEffect(() => {
     const startId = getStartNodeId(currentEmergency);
+    const targetNodeId = activeTargetHospital?.nearestNodeId || targetHospitalId;
+
     const res = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
-      targetNodeId: targetHospitalId,
+      targetNodeId,
       graph: activeGraph
     });
-    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
+    const bench = runBenchmark(startId, targetNodeId, activeGraph);
     setRouteResult(res);
     setBenchmarkResult(bench);
-  }, [networkMode]);
+  }, [networkMode, targetHospitalId]);
 
   const isRoadBlockedState = !!blockedEdgeInfo;
 
@@ -515,7 +535,7 @@ export default function App() {
                     handleCalculateRoute(algo);
                   }}
                   fromLocation={currentEmergency?.village || "Village D"}
-                  toLocation="Hospital C"
+                  toLocation={activeTargetHospital?.name || "Target Hospital"}
                   onCalculateRoute={() => handleCalculateRoute()}
                 />
               )}
@@ -530,7 +550,7 @@ export default function App() {
                 <AmbulanceDispatchPanel 
                   ambulanceCode={ambulanceSimState.assignedAmbulanceCode}
                   from={currentEmergency?.village || "Village D"}
-                  to="Hospital C"
+                  to={activeTargetHospital?.name || "Target Hospital"}
                   totalDistance={routeResult?.distance || 19.6}
                   totalTravelTime={routeResult?.travelTime || 25}
                   isDispatched={ambulanceSimState.isDispatched}
@@ -543,7 +563,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Right Column: Live Map Canvas with 50,000-Node Renderer */}
+            {/* Right Column: Live GIS Canvas Map */}
             <div className="demo-map-col">
               <Map 
                 nodes={activeNodes} 
@@ -553,6 +573,7 @@ export default function App() {
                 networkMode={networkMode}
                 selectedNodeId={selectedNodeId}
                 onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+                onSelectDestination={handleSelectDestination}
                 calculatedPath={routeResult?.path || []}
                 ambulancePos={ambulancePos}
                 isAmbulanceDispatched={ambulanceSimState.isDispatched}

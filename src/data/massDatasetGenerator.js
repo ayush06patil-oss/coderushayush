@@ -341,6 +341,9 @@ export function generateMassSimulationDataset() {
     const hospId = i === 0 ? "node_h_a" : i === 1 ? "node_h_b" : i === 2 ? "node_h_c" : `HOSP-${100 + i}`;
     const hospName = i === 0 ? "Hospital A" : i === 1 ? "Hospital B" : i === 2 ? "Hospital C" : (i < INDIAN_FACILITY_NAMES.length ? INDIAN_FACILITY_NAMES[i] : `Rural Hospital #${i + 1}`);
 
+    // Standard demo aliases use hospId; all other hospitals map to valid graph node ID
+    const targetNearestNodeId = (i === 0 || i === 1 || i === 2) ? hospId : nearestNode.id;
+
     hospitals.push({
       id: hospId,
       name: hospName,
@@ -360,7 +363,7 @@ export function generateMassSimulationDataset() {
       operational: true,
       hasCardiologist: hasCardio,
       specialists: specs,
-      nearestNodeId: hospId
+      nearestNodeId: targetNearestNodeId
     });
   }
 

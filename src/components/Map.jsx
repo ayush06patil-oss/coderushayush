@@ -10,7 +10,8 @@ import {
   X,
   CheckCircle2,
   XCircle,
-  Activity
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Map({ 
@@ -21,6 +22,7 @@ export default function Map({
   networkMode = "standard",
   selectedNodeId, 
   onSelectNode,
+  onSelectDestination,
   calculatedPath = [], 
   ambulancePos = null,  
   isAmbulanceDispatched = false
@@ -58,7 +60,6 @@ export default function Map({
   // Intermediate path nodes for subtle SVG waypoint dots (excluding start/end)
   const intermediateWaypoints = useMemo(() => {
     if (!calculatedPath || calculatedPath.length <= 2) return [];
-    // Sample intermediate waypoints to avoid dense dot clutter on 100-node paths
     const step = Math.max(1, Math.floor(calculatedPath.length / 25));
     const waypoints = [];
     for (let i = 1; i < calculatedPath.length - 1; i += step) {
@@ -68,14 +69,14 @@ export default function Map({
     return waypoints;
   }, [calculatedPath, nodeDict]);
 
-  // Midpoint coordinate of the active calculated route for clean single travel time tag
+  // Midpoint coordinate of active route
   const routeMidpointPos = useMemo(() => {
     if (!calculatedPath || calculatedPath.length < 2) return null;
     const midIndex = Math.floor(calculatedPath.length / 2);
     return getNodePos(calculatedPath[midIndex]);
   }, [calculatedPath, nodeDict]);
 
-  // Total travel time estimation along calculated path
+  // Total travel time along active path
   const totalRouteTravelTime = useMemo(() => {
     if (!calculatedPath || calculatedPath.length < 2 || !Array.isArray(roads)) return 25;
     const pathEdgeSet = new Set();
@@ -92,7 +93,7 @@ export default function Map({
     return totalTime > 0 ? totalTime : 25;
   }, [calculatedPath, roads]);
 
-  // Key Facility Badges (HTML Pill Overlay) — ONLY key named facilities, NO intermediate "Node 15031" pills!
+  // Key Facility Badges (HTML Pill Overlay) — Origin, Selected Target Hospital, and Key Facilities
   const displayBadges = useMemo(() => {
     if (!Array.isArray(nodes)) return [];
 
@@ -105,7 +106,7 @@ export default function Map({
       if (startNode) {
         keyBadges.push({
           ...startNode,
-          badgeLabel: startNode.name.startsWith("Node ") ? "Origin Emergency" : startNode.name,
+          badgeLabel: startNode.name.startsWith("Node ") ? "Origin Village" : startNode.name,
           isOrigin: true
         });
       }
@@ -124,45 +125,57 @@ export default function Map({
       }
     }
 
-    // 3. Named Demo Hospitals & Key Villages
-    const primaryDemoIds = ["node_v_a", "node_v_b", "node_v_d", "node_h_a", "node_h_b", "node_h_c", "node_h_e"];
-    nodes.forEach(n => {
-      if (n && primaryDemoIds.includes(n.id) && !keyBadges.some(b => b.id === n.id)) {
+    // 3. Render Top Hospitals in viewport for interactive click routing
+    const displayHospitals = networkMode === "50k" ? (hospitals || []).slice(0, 12) : (hospitals || []).slice(0, 5);
+    displayHospitals.forEach(h => {
+      const targetId = h.nearestNodeId || h.id;
+      const node = nodeDict[targetId] || h;
+      if (node && !keyBadges.some(b => b.id === node.id)) {
         keyBadges.push({
-          ...n,
-          badgeLabel: n.name
+          ...node,
+          id: h.id,
+          name: h.name,
+          badgeLabel: h.name,
+          type: "hospital",
+          hospitalObj: h
         });
       }
     });
 
-    // 4. In 50k mode, add top named hospitals and villages
-    if (networkMode === "50k") {
-      (hospitals || []).slice(0, 5).forEach(h => {
-        const node = nodeDict[h.nearestNodeId || h.id] || h;
-        if (node && !keyBadges.some(b => b.id === node.id)) {
-          keyBadges.push({
-            ...node,
-            name: h.name,
-            badgeLabel: h.name,
-            type: "hospital"
-          });
-        }
-      });
-    }
-
     return keyBadges;
   }, [networkMode, nodes, hospitals, calculatedPath, nodeDict]);
 
-  // Sample road edges for background grid mesh (faint lines)
+  // Background road network mesh with GIS hierarchy styling
   const backgroundRoads = useMemo(() => {
     if (!Array.isArray(roads)) return [];
-    const sampleStep = networkMode === "50k" ? Math.max(1, Math.floor(roads.length / 300)) : 1;
+    const sampleStep = networkMode === "50k" ? Math.max(1, Math.floor(roads.length / 350)) : 1;
     return roads.filter((r, idx) => r && idx % sampleStep === 0);
   }, [networkMode, roads]);
 
   const handleNodeClick = (node) => {
     setActivePopupNode(node);
     if (onSelectNode) onSelectNode(node.id);
+    // If clicking a hospital node, trigger destination selection
+    if ((node.type === "hospital" || node.hospitalObj) && onSelectDestination) {
+      const targetHospId = node.hospitalObj ? node.hospitalObj.id : node.id;
+      onSelectDestination(targetHospId);
+    }
+  };
+
+  // Helper for GIS Road Color & Line Weight Hierarchy
+  const getRoadStyle = (road) => {
+    if (road.blocked) {
+      return { stroke: "#EF4444", strokeWidth: "2.2", strokeDasharray: "4,4", opacity: "0.9" };
+    }
+    const type = road.roadType || "Rural Road";
+    if (type === "Highway") {
+      return { stroke: "#F59E0B", strokeWidth: "2.0", strokeDasharray: "none", opacity: "0.85" }; // Gold
+    } else if (type === "State Highway") {
+      return { stroke: "#06B6D4", strokeWidth: "1.6", strokeDasharray: "none", opacity: "0.8" }; // Cyan/Teal
+    } else if (type === "District Road") {
+      return { stroke: "#64748B", strokeWidth: "1.2", strokeDasharray: "none", opacity: "0.6" }; // Slate
+    }
+    return { stroke: "#CBD5E1", strokeWidth: "0.8", strokeDasharray: "none", opacity: "0.5" }; // Default
   };
 
   // Fallback initial position for ambulance marker if ambulancePos not yet calculated
@@ -177,7 +190,7 @@ export default function Map({
           <Activity size={18} className="text-primary" />
           <span>Live Interactive Map</span>
           <span className={`badge ${networkMode === "50k" ? "badge-purple" : "badge-success"}`}>
-            {networkMode === "50k" ? "50,000-Node Live Network Mesh" : "Live Animated Canvas"}
+            {networkMode === "50k" ? `50,000 Nodes (${hospitals.length} Hospitals)` : "Live Animated Canvas"}
           </span>
         </h2>
         <div className="map-controls">
@@ -194,14 +207,16 @@ export default function Map({
       </div>
 
       <div className="map-viewport" style={{ transform: `scale(${zoomLevel})` }}>
-        {/* SVG Network Mesh & Smooth Route Canvas */}
+        {/* SVG Network Mesh & GIS Canvas */}
         <svg className="map-svg-canvas" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Layer 1: Background Road Network Grid Mesh (Faint, uncluttered) */}
+          {/* Layer 1: Background GIS Road Hierarchy Mesh */}
           {backgroundRoads.map((road) => {
             if (!road) return null;
             const from = getNodePos(road.from);
             const to = getNodePos(road.to);
             if (!from.x || !to.x) return null;
+
+            const style = getRoadStyle(road);
 
             return (
               <line
@@ -210,28 +225,28 @@ export default function Map({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke={road.blocked ? "#DC2626" : "#E2E8F0"}
-                strokeWidth={road.blocked ? "1.5" : "0.5"}
-                strokeDasharray={road.blocked ? "2,2" : "none"}
-                opacity={road.blocked ? "0.9" : "0.5"}
+                stroke={style.stroke}
+                strokeWidth={style.strokeWidth}
+                strokeDasharray={style.strokeDasharray}
+                opacity={style.opacity}
               />
             );
           })}
 
-          {/* Layer 2: Smooth Active A* Route Path Polyline (#2563EB, 3.5px, glow) */}
+          {/* Layer 2: Glowing Neon Active A* Path Polyline (#2563EB, 4.5px width) */}
           {pathPolylinePoints && (
             <polyline
               points={pathPolylinePoints}
               fill="none"
               stroke="#2563EB"
-              strokeWidth="3.5"
+              strokeWidth="4.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               className="active-route-polyline"
             />
           )}
 
-          {/* Layer 3: Subtle Waypoint Dots for Intermediate Route Nodes */}
+          {/* Layer 3: Intermediate SVG Waypoint Dots */}
           {intermediateWaypoints.map((pt) => (
             <circle
               key={`dot_${pt.id}`}
@@ -255,7 +270,7 @@ export default function Map({
           </div>
         )}
 
-        {/* Key Location HTML Pill Badges (Start Village, Target Hospital, Key Demo Facilities ONLY) */}
+        {/* Interactive Hospital & Facility HTML Pill Badges */}
         {displayBadges.map((node) => {
           if (!node) return null;
           let nodeIcon = <Home size={13} />;
@@ -278,6 +293,7 @@ export default function Map({
               className={`${nodeClass} ${isSelected ? 'selected-node-highlight' : ''} ${isInPath ? 'in-path-node' : ''} ${node.isOrigin ? 'origin-badge' : ''} ${node.isDestination ? 'destination-badge' : ''}`}
               style={{ left: `${node.x}%`, top: `${node.y}%` }}
               onClick={() => handleNodeClick(node)}
+              title="Click to select this hospital for emergency routing"
             >
               <span className="node-badge-icon">{nodeIcon}</span>
               <span className="node-badge-text">{node.badgeLabel || node.name}</span>
@@ -336,36 +352,42 @@ export default function Map({
               )}
               {activePopupNode.type === "hospital" && (
                 <p className="popup-specialist-check">
-                  Cardiology: {activePopupNode.hasCardiologist ? (
+                  Cardiology: {activePopupNode.hasCardiologist !== false ? (
                     <span className="text-success font-semibold inline-flex items-center gap-1"><CheckCircle2 size={12} /> Available</span>
                   ) : (
                     <span className="text-danger font-semibold inline-flex items-center gap-1"><XCircle size={12} /> Unavailable</span>
                   )}
                 </p>
               )}
-              {activePopupNode.details && <p>{activePopupNode.details}</p>}
+              {activePopupNode.type === "hospital" && (
+                <button 
+                  onClick={() => {
+                    if (onSelectDestination) onSelectDestination(activePopupNode.id);
+                    setActivePopupNode(null);
+                  }}
+                  className="btn btn-primary btn-full mt-2 text-xs"
+                >
+                  <ShieldCheck size={12} /> SELECT FOR ROUTING
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Map Legend */}
+      {/* GIS Road Legend */}
       <div className="map-legend">
         <div className="legend-item">
-          <span className="legend-icon village-color"><Home size={14} /></span>
-          <span>Village</span>
+          <span className="legend-line" style={{ backgroundColor: "#F59E0B", height: "3px" }}></span>
+          <span>Highway</span>
         </div>
         <div className="legend-item">
-          <span className="legend-icon hospital-color"><Building2 size={14} /></span>
-          <span>Hospital</span>
+          <span className="legend-line" style={{ backgroundColor: "#06B6D4", height: "2.5px" }}></span>
+          <span>State Highway</span>
         </div>
         <div className="legend-item">
-          <span className="legend-icon health-center-color"><PlusSquare size={14} /></span>
-          <span>Health Center</span>
-        </div>
-        <div className="legend-item">
-          <span className="legend-icon ambulance-color"><Truck size={14} /></span>
-          <span>Ambulance</span>
+          <span className="legend-line" style={{ backgroundColor: "#64748B", height: "2px" }}></span>
+          <span>District Road</span>
         </div>
         <div className="legend-item">
           <span className="legend-line blocked-line"></span>
@@ -373,7 +395,7 @@ export default function Map({
         </div>
         <div className="legend-item">
           <span className="legend-line selected-line"></span>
-          <span>Selected Route</span>
+          <span>Active Route</span>
         </div>
       </div>
     </div>
