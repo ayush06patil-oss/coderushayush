@@ -522,6 +522,38 @@ body {
   font-weight: 700;
 }
 
+.amb-progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background-color: #E2E8F0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  transition: width 0.15s ease-out;
+  border-radius: 4px;
+}
+
+.telemetry-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
 .fleet-status-footer {
   display: flex;
   gap: 12px;
@@ -725,6 +757,7 @@ body {
 .badge-danger { background-color: var(--danger-red-light); color: var(--danger-red); }
 .badge-purple { background-color: var(--purple-accent-light); color: var(--purple-accent); }
 .badge-warning { background-color: var(--warning-amber-light); color: var(--warning-amber); }
+.badge-primary { background-color: var(--primary-blue-light); color: var(--primary-blue); }
 
 /* Decision Log */
 .decision-log-collapsible .log-item {
@@ -886,6 +919,12 @@ body {
   cursor: pointer;
   z-index: 8;
   animation: pulse-ring 2s infinite;
+}
+
+.map-ambulance-marker.dispatched-active {
+  background-color: var(--purple-accent);
+  box-shadow: 0 0 0 5px rgba(124, 58, 237, 0.35);
+  z-index: 15;
 }
 
 @keyframes pulse-ring {

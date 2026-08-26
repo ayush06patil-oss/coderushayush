@@ -18,6 +18,7 @@ import { SimulationEngine } from './simulation/simulation';
 import { calculateRoute } from './algorithms/routingEngine';
 import { runBenchmark } from './algorithms/benchmark';
 import { findActivePathEdge } from './algorithms/routeValidator';
+import { interpolatePathPosition } from './utils/pathInterpolator';
 
 import { 
   MOCK_NODES, 
@@ -45,6 +46,13 @@ export default function App() {
   const [previousDistance, setPreviousDistance] = useState(null);
   const [previousPathNames, setPreviousPathNames] = useState([]);
 
+  // Live Ambulance Telemetry & Simulation State
+  const [ambulanceSimState, setAmbulanceSimState] = useState({
+    isDispatched: false,
+    isPaused: false,
+    progressPct: 0
+  });
+
   // Unified Application State
   const [appState, setAppState] = useState({
     nodes: MOCK_NODES,
@@ -56,7 +64,7 @@ export default function App() {
     capacity: INITIAL_CAPACITY
   });
 
-  // Graph instance initialization - updates automatically when appState.roads changes!
+  // Graph instance initialization
   const graph = useMemo(() => {
     const g = new RuralGraph();
     appState.nodes.forEach(n => g.addNode(n));
@@ -76,6 +84,47 @@ export default function App() {
     return foundNode ? foundNode.id : "node_v_d";
   };
 
+  // Dynamic calculation of live ambulance coordinates on map
+  const ambulancePos = useMemo(() => {
+    const path = routeResult?.path || [];
+    return interpolatePathPosition(path, ambulanceSimState.progressPct, appState.nodes);
+  }, [routeResult?.path, ambulanceSimState.progressPct, appState.nodes]);
+
+  // Live Animation Loop for Ambulance Transit
+  useEffect(() => {
+    let intervalId = null;
+
+    if (ambulanceSimState.isDispatched && !ambulanceSimState.isPaused && ambulanceSimState.progressPct < 100) {
+      intervalId = setInterval(() => {
+        setAmbulanceSimState(prev => {
+          const nextPct = Math.min(100, prev.progressPct + 1.2);
+          
+          if (nextPct >= 100 && prev.progressPct < 100) {
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+            setAppState(aPrev => ({
+              ...aPrev,
+              logs: [
+                {
+                  id: Date.now(),
+                  time: timestamp,
+                  type: "assign",
+                  text: `Ambulance #02 arrived at Hospital C — Patient transferred successfully`
+                },
+                ...aPrev.logs
+              ]
+            }));
+          }
+
+          return { ...prev, progressPct: nextPct };
+        });
+      }, 100);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [ambulanceSimState.isDispatched, ambulanceSimState.isPaused, ambulanceSimState.progressPct]);
+
   // STEP 1 HANDLER: Create Emergency
   const handleCreateEmergency = (req) => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -91,6 +140,7 @@ export default function App() {
     };
 
     setCurrentEmergency(newEmergency);
+    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0 });
 
     const log1 = { id: Date.now(), time: timestamp, type: "create", text: `Emergency ${newId} created (${req.village})` };
     const log2 = { id: Date.now() + 1, time: timestamp, type: "info", text: `${req.type} requirement detected` };
@@ -146,6 +196,7 @@ export default function App() {
 
     setRouteResult(res);
     setBenchmarkResult(bench);
+    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0 });
 
     const log1 = {
       id: Date.now(),
@@ -292,9 +343,15 @@ export default function App() {
     }));
   };
 
-  // DISPATCH HANDLER: Dispatch Ambulance
+  // DISPATCH HANDLERS: Dispatch, Pause/Resume, Reset Ambulance Simulation
   const handleDispatchAmbulance = () => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    setAmbulanceSimState({
+      isDispatched: true,
+      isPaused: false,
+      progressPct: 0
+    });
+
     const log = {
       id: Date.now(),
       time: timestamp,
@@ -305,6 +362,14 @@ export default function App() {
       ...prev,
       logs: [log, ...prev.logs]
     }));
+  };
+
+  const handlePauseResumeAmbulance = () => {
+    setAmbulanceSimState(prev => ({ ...prev, isPaused: !prev.isPaused }));
+  };
+
+  const handleResetAmbulance = () => {
+    setAmbulanceSimState({ isDispatched: false, isPaused: false, progressPct: 0 });
   };
 
   // Auto-calculate initial demo route on mount
@@ -379,20 +444,25 @@ export default function App() {
                 <RouteResultCard routeResult={routeResult} />
               )}
 
-              {/* Step 4: Ambulance Dispatch Panel */}
+              {/* Step 4: Ambulance Dispatch & Telemetry Panel */}
               {currentStep >= 4 && (
                 <AmbulanceDispatchPanel 
                   ambulanceCode="Ambulance #02"
                   from={currentEmergency?.village || "Village D"}
                   to="Hospital C"
-                  distance={routeResult?.distance ? `${routeResult.distance} km` : "19.6 km"}
-                  eta={routeResult?.travelTime ? `${routeResult.travelTime} min` : "25 min"}
+                  totalDistance={routeResult?.distance || 19.6}
+                  totalTravelTime={routeResult?.travelTime || 25}
+                  isDispatched={ambulanceSimState.isDispatched}
+                  isPaused={ambulanceSimState.isPaused}
+                  progressPct={ambulanceSimState.progressPct}
                   onDispatch={handleDispatchAmbulance}
+                  onPauseResume={handlePauseResumeAmbulance}
+                  onReset={handleResetAmbulance}
                 />
               )}
             </div>
 
-            {/* Right Column: Live Map Canvas */}
+            {/* Right Column: Live Map Canvas with Dynamic Ambulance Positioning */}
             <div className="demo-map-col">
               <Map 
                 nodes={appState.nodes} 
@@ -400,13 +470,15 @@ export default function App() {
                 selectedNodeId={selectedNodeId}
                 onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
                 calculatedPath={routeResult?.path || []}
+                ambulancePos={ambulancePos}
+                isAmbulanceDispatched={ambulanceSimState.isDispatched}
               />
             </div>
           </div>
 
           {/* 4. Live Resource Status Summary Card */}
           <LiveResourcesCard 
-            ambulancesAvailableStr="4 / 8"
+            ambulancesAvailableStr={ambulanceSimState.isDispatched ? "4 / 8" : "5 / 8"}
             hospitalsOnline={appState.hospitals.length}
             bedsAvailable={72}
             bedsTotal={100}

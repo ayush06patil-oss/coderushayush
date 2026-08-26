@@ -17,7 +17,9 @@ export default function Map({
   roads = [], 
   selectedNodeId, 
   onSelectNode,
-  calculatedPath = [] // Single Source of Truth from routingResult.path
+  calculatedPath = [], // Single Source of Truth from routingResult.path
+  ambulancePos = null,  // Live animated ambulance coordinates { x, y }
+  isAmbulanceDispatched = false
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePopupNode, setActivePopupNode] = useState(null);
@@ -49,12 +51,17 @@ export default function Map({
     return false;
   };
 
+  // Fallback initial position for ambulance marker if ambulancePos not yet calculated
+  const startNodePos = calculatedPath.length > 0 ? getNodePos(calculatedPath[0]) : { x: 51, y: 56 };
+  const currentAmbX = ambulancePos ? ambulancePos.x : startNodePos.x;
+  const currentAmbY = ambulancePos ? ambulancePos.y : startNodePos.y;
+
   return (
     <div className="map-card primary-demo-map">
       <div className="map-header">
         <h2 className="map-title inline-flex items-center gap-2">
           <span>Live Interactive Map</span>
-          <span className="badge badge-success">Algorithm Source of Truth</span>
+          <span className="badge badge-success">Live Animated Canvas</span>
         </h2>
         <div className="map-controls">
           <button className="map-ctrl-btn" onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.3))} title="Zoom In">
@@ -154,12 +161,21 @@ export default function Map({
           );
         })}
 
-        {/* Animated Ambulance Marker overlay */}
+        {/* Live Animated Ambulance Marker Overlay */}
         <div 
-          className="map-ambulance-marker"
-          style={{ left: "57%", top: "60%" }}
-          title="Ambulance #02 En Route"
-          onClick={() => handleNodeClick({ id: "amb_02", name: "Ambulance #02", type: "ambulance", details: "En Route from Village D to Hospital C (ETA 12 min)" })}
+          className={`map-ambulance-marker ${isAmbulanceDispatched ? 'dispatched-active' : ''}`}
+          style={{ 
+            left: `${currentAmbX}%`, 
+            top: `${currentAmbY}%`,
+            transition: 'left 0.15s linear, top 0.15s linear'
+          }}
+          title="Ambulance #02 (Live GPS Tracking)"
+          onClick={() => handleNodeClick({ 
+            id: "amb_02", 
+            name: "Ambulance #02", 
+            type: "ambulance", 
+            details: isAmbulanceDispatched ? "En Route on active route path" : "Stationed at origin" 
+          })}
         >
           <Truck size={14} />
         </div>
