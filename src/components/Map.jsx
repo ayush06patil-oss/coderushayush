@@ -17,7 +17,7 @@ export default function Map({
   roads = [], 
   selectedNodeId, 
   onSelectNode,
-  calculatedPath = []
+  calculatedPath = [] // Single Source of Truth from routingResult.path
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePopupNode, setActivePopupNode] = useState(null);
@@ -36,6 +36,7 @@ export default function Map({
     return node ? { x: node.x, y: node.y } : { x: 0, y: 0 };
   };
 
+  // Helper to determine if a road edge strictly belongs to consecutive pairs in calculatedPath
   const isEdgeInCalculatedPath = (road) => {
     if (!calculatedPath || calculatedPath.length < 2) return false;
     for (let i = 0; i < calculatedPath.length - 1; i++) {
@@ -53,7 +54,7 @@ export default function Map({
       <div className="map-header">
         <h2 className="map-title inline-flex items-center gap-2">
           <span>Live Interactive Map</span>
-          <span className="badge badge-success">Active Visual Canvas</span>
+          <span className="badge badge-success">Algorithm Source of Truth</span>
         </h2>
         <div className="map-controls">
           <button className="map-ctrl-btn" onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.3))} title="Zoom In">
@@ -62,7 +63,7 @@ export default function Map({
           <button className="map-ctrl-btn" onClick={() => setZoomLevel(prev => Math.max(prev - 0.1, 0.8))} title="Zoom Out">
             <Minus size={16} />
           </button>
-          <button className="map-ctrl-btn" onClick={() => setZoomLevel(1)} title="Recenter Map">
+          <button className="map-ctrl-btn" onClick={() => setZoomLevel(1)} title="Recenter / Fit Route">
             <Navigation size={16} />
           </button>
         </div>
@@ -80,7 +81,7 @@ export default function Map({
 
             let strokeClass = "road-line-normal";
             if (road.blocked) strokeClass = "road-line-blocked";
-            else if (isPathEdge || road.isSelected) strokeClass = "road-line-selected";
+            else if (isPathEdge) strokeClass = "road-line-selected";
 
             return (
               <g key={road.id}>
@@ -158,7 +159,7 @@ export default function Map({
           className="map-ambulance-marker"
           style={{ left: "57%", top: "60%" }}
           title="Ambulance #02 En Route"
-          onClick={() => handleNodeClick({ id: "amb_02", name: "Ambulance #02", type: "ambulance", details: "En Route from Village A to Hospital C (ETA 12 min)" })}
+          onClick={() => handleNodeClick({ id: "amb_02", name: "Ambulance #02", type: "ambulance", details: "En Route from Village D to Hospital C (ETA 12 min)" })}
         >
           <Truck size={14} />
         </div>

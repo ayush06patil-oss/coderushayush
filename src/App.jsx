@@ -10,6 +10,7 @@ import LiveResourcesCard from './components/LiveResourcesCard';
 import AlgorithmComparisonCard from './components/AlgorithmComparisonCard';
 import RoadFailureDemo from './components/RoadFailureDemo';
 import DecisionLogCollapsible from './components/DecisionLogCollapsible';
+import RouteDebugPanel from './components/RouteDebugPanel';
 import Map from './components/Map';
 
 import { RuralGraph } from './graph/graph';
@@ -29,7 +30,7 @@ import {
 
 export default function App() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedNodeId, setSelectedNodeId] = useState("node_v_a");
+  const [selectedNodeId, setSelectedNodeId] = useState("node_v_d");
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
   const [targetHospitalId, setTargetHospitalId] = useState("node_h_c");
 
@@ -64,11 +65,11 @@ export default function App() {
     return new SimulationEngine(graph);
   }, [graph]);
 
-  // Helper: Get start node ID
+  // Helper: Get start node ID from emergency village
   const getStartNodeId = (emergency) => {
-    const villageName = emergency?.village || "Village A";
+    const villageName = emergency?.village || "Village D";
     const foundNode = appState.nodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
-    return foundNode ? foundNode.id : "node_v_a";
+    return foundNode ? foundNode.id : "node_v_d";
   };
 
   // STEP 1 HANDLER: Create Emergency
@@ -123,13 +124,14 @@ export default function App() {
   };
 
   // STEP 3 HANDLER: Calculate Route
-  const handleCalculateRoute = () => {
+  const handleCalculateRoute = (algoOverride) => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
+    const algoToRun = algoOverride || selectedAlgorithm;
 
     // Run algorithm calculation
     const res = calculateRoute({
-      algorithm: selectedAlgorithm,
+      algorithm: algoToRun,
       startNodeId: startId,
       targetNodeId: targetHospitalId,
       graph
@@ -228,7 +230,7 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "assign",
-      text: `Ambulance #02 dispatched to ${currentEmergency?.village || "Village A"}`
+      text: `Ambulance #02 dispatched to ${currentEmergency?.village || "Village D"}`
     };
     setAppState(prev => ({
       ...prev,
@@ -252,7 +254,7 @@ export default function App() {
 
   const isRoadR17Blocked = appState.roads.find(r => r.id === "road_r17")?.blocked;
 
-  const currentPathNodeNames = (routeResult?.path || ["node_v_a", "node_v_b", "node_v_d", "node_h_c"])
+  const currentPathNodeNames = (routeResult?.path || [])
     .map(id => appState.nodes.find(n => n.id === id)?.name || id);
 
   return (
@@ -293,10 +295,13 @@ export default function App() {
               {currentStep === 3 && (
                 <Step3RoutingControls 
                   selectedAlgorithm={selectedAlgorithm}
-                  onAlgorithmChange={(algo) => setSelectedAlgorithm(algo)}
-                  fromLocation={currentEmergency?.village || "Village A"}
+                  onAlgorithmChange={(algo) => {
+                    setSelectedAlgorithm(algo);
+                    handleCalculateRoute(algo);
+                  }}
+                  fromLocation={currentEmergency?.village || "Village D"}
                   toLocation="Hospital C"
-                  onCalculateRoute={handleCalculateRoute}
+                  onCalculateRoute={() => handleCalculateRoute()}
                 />
               )}
 
@@ -309,10 +314,10 @@ export default function App() {
               {currentStep >= 4 && (
                 <AmbulanceDispatchPanel 
                   ambulanceCode="Ambulance #02"
-                  from={currentEmergency?.village || "Village A"}
+                  from={currentEmergency?.village || "Village D"}
                   to="Hospital C"
-                  distance={routeResult?.distance ? `${routeResult.distance} km` : "25.4 km"}
-                  eta={routeResult?.travelTime ? `${routeResult.travelTime} min` : "15 min"}
+                  distance={routeResult?.distance ? `${routeResult.distance} km` : "19.6 km"}
+                  eta={routeResult?.travelTime ? `${routeResult.travelTime} min` : "25 min"}
                   onDispatch={handleDispatchAmbulance}
                 />
               )}
@@ -343,6 +348,9 @@ export default function App() {
           {benchmarkResult && (
             <AlgorithmComparisonCard benchmarkResult={benchmarkResult} />
           )}
+
+          {/* Dev Debug Panel for Path & Metric Audit */}
+          <RouteDebugPanel routeResult={routeResult} graph={graph} />
 
           {/* 6. Optional Test Routing Resilience (Road Block & Re-Routing Demo) */}
           <RoadFailureDemo 

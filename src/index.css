@@ -361,6 +361,45 @@ body {
   margin-bottom: 12px;
 }
 
+/* Debug Panel */
+.debug-panel-card {
+  border: 1px dashed var(--warning-amber);
+  background-color: #FFFDF5;
+}
+
+.debug-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.debug-row {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #F1F5F9;
+  padding-bottom: 4px;
+}
+
+.debug-label { color: var(--text-muted); }
+.code-text { font-family: monospace; font-size: 11px; color: var(--primary-blue); }
+
+.debug-edges-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.debug-edge-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
 /* Step 2 Healthcare Matching */
 .emergency-summary-banner {
   background-color: #F8FAFC;

@@ -1,7 +1,6 @@
 /**
  * Initial Mock Dataset for Rural Healthcare Routing System
- * Contains mock geographic nodes, road network edges, ambulance telemetry,
- * doctor roster, and inventory state for Phase 1.5 state management.
+ * Clean data without hardcoded selected route flags.
  */
 
 export const MOCK_NODES = [
@@ -14,7 +13,7 @@ export const MOCK_NODES = [
   { id: "node_v_g", name: "Village G", type: "village", x: 30, y: 82, population: 720 },
   { id: "node_v_h", name: "Village H", type: "village", x: 62, y: 82, population: 1100 },
 
-  // Hospitals with specialty & bed state
+  // Hospitals
   { 
     id: "node_h_a", 
     name: "Hospital A", 
@@ -37,7 +36,7 @@ export const MOCK_NODES = [
     bedsAvailable: 18,
     distanceKm: 10,
     specialists: ["Trauma", "General"],
-    hasCardiologist: false // Key constraint for Cardiology demo scenario
+    hasCardiologist: false
   },
   { 
     id: "node_h_c", 
@@ -49,7 +48,7 @@ export const MOCK_NODES = [
     bedsAvailable: 72,
     distanceKm: 25,
     specialists: ["Cardiology", "Neurology", "ICU", "Trauma"],
-    hasCardiologist: true // Key constraint for Cardiology demo scenario
+    hasCardiologist: true
   },
   { 
     id: "node_h_d", 
@@ -87,33 +86,34 @@ export const MOCK_NODES = [
   { id: "node_ph_3", name: "Apex Pharma Hub", type: "pharmacy", x: 20, y: 40 }
 ];
 
+// Pure road network without hardcoded selected route flags
 export const MOCK_ROADS = [
-  { id: "road_ab", name: "Route A-B", from: "node_v_a", to: "node_v_b", distance: 9.5, travelTime: 12, blocked: false, isSelected: true },
-  { id: "road_bd", name: "Route B-D", from: "node_v_b", to: "node_v_d", distance: 5.2, travelTime: 7, blocked: false, isSelected: true },
-  { id: "road_db", name: "Route D-HospB", from: "node_v_d", to: "node_h_b", distance: 4.1, travelTime: 5, blocked: false, isSelected: true },
+  { id: "road_ab", name: "Route A-B", from: "node_v_a", to: "node_v_b", distance: 9.5, travelTime: 12, blocked: false },
+  { id: "road_bd", name: "Route B-D", from: "node_v_b", to: "node_v_d", distance: 5.2, travelTime: 7, blocked: false },
+  { id: "road_db", name: "Route D-HospB", from: "node_v_d", to: "node_h_b", distance: 4.1, travelTime: 5, blocked: false },
 
   // Blocked Road R17 (Village B -> Hospital A)
-  { id: "road_r17", name: "R17 Highway", from: "node_v_b", to: "node_h_a", distance: 11.0, travelTime: 14, blocked: true, isSelected: false },
+  { id: "road_r17", name: "R17 Highway", from: "node_v_b", to: "node_h_a", distance: 11.0, travelTime: 14, blocked: true },
 
-  // Alternative Roads
-  { id: "road_ahc", name: "Route A-HC", from: "node_v_a", to: "node_hc_1", distance: 6.8, travelTime: 8, blocked: false, isSelected: false },
-  { id: "road_hc_d", name: "Route HC-D", from: "node_hc_1", to: "node_v_d", distance: 8.0, travelTime: 10, blocked: false, isSelected: false },
-  { id: "road_hab", name: "Route HospA-HospB", from: "node_h_a", to: "node_h_b", distance: 12.3, travelTime: 15, blocked: false, isSelected: false },
-  { id: "road_hac", name: "Route HospA-HospC", from: "node_h_a", to: "node_h_c", distance: 14.0, travelTime: 18, blocked: false, isSelected: false },
-  { id: "road_hbc", name: "Route HospB-HospC", from: "node_h_b", to: "node_h_c", distance: 15.5, travelTime: 20, blocked: false, isSelected: false },
-  { id: "road_ve_ha", name: "Route E-HospA", from: "node_v_e", to: "node_h_a", distance: 7.2, travelTime: 9, blocked: false, isSelected: false },
-  { id: "road_ve_hc", name: "Route E-HospC", from: "node_v_e", to: "node_h_c", distance: 8.8, travelTime: 11, blocked: false, isSelected: false },
-  { id: "road_vf_hb", name: "Route F-HospB", from: "node_v_f", to: "node_h_b", distance: 10.4, travelTime: 13, blocked: false, isSelected: false },
-  { id: "road_vg_hc1", name: "Route G-HC", from: "node_v_g", to: "node_hc_1", distance: 5.5, travelTime: 7, blocked: false, isSelected: false },
-  { id: "road_vh_vd", name: "Route H-D", from: "node_v_h", to: "node_v_d", distance: 9.0, travelTime: 11, blocked: false, isSelected: false },
-  { id: "road_vc_ahc", name: "Route C-HC", from: "node_v_c", to: "node_hc_1", distance: 4.2, travelTime: 6, blocked: false, isSelected: false },
-  { id: "road_hd_va", name: "Route HospD-A", from: "node_h_d", to: "node_v_a", distance: 11.2, travelTime: 14, blocked: false, isSelected: false }
+  // Alternative & Connectivity Roads
+  { id: "road_ahc", name: "Route A-HC", from: "node_v_a", to: "node_hc_1", distance: 6.8, travelTime: 8, blocked: false },
+  { id: "road_hc_d", name: "Route HC-D", from: "node_hc_1", to: "node_v_d", distance: 8.0, travelTime: 10, blocked: false },
+  { id: "road_hab", name: "Route HospA-HospB", from: "node_h_a", to: "node_h_b", distance: 12.3, travelTime: 15, blocked: false },
+  { id: "road_hac", name: "Route HospA-HospC", from: "node_h_a", to: "node_h_c", distance: 14.0, travelTime: 18, blocked: false },
+  { id: "road_hbc", name: "Route HospB-HospC", from: "node_h_b", to: "node_h_c", distance: 15.5, travelTime: 20, blocked: false },
+  { id: "road_ve_ha", name: "Route E-HospA", from: "node_v_e", to: "node_h_a", distance: 7.2, travelTime: 9, blocked: false },
+  { id: "road_ve_hc", name: "Route E-HospC", from: "node_v_e", to: "node_h_c", distance: 8.8, travelTime: 11, blocked: false },
+  { id: "road_vf_hb", name: "Route F-HospB", from: "node_v_f", to: "node_h_b", distance: 10.4, travelTime: 13, blocked: false },
+  { id: "road_vg_hc1", name: "Route G-HC", from: "node_v_g", to: "node_hc_1", distance: 5.5, travelTime: 7, blocked: false },
+  { id: "road_vh_vd", name: "Route H-D", from: "node_v_h", to: "node_v_d", distance: 9.0, travelTime: 11, blocked: false },
+  { id: "road_vc_ahc", name: "Route C-HC", from: "node_v_c", to: "node_hc_1", distance: 4.2, travelTime: 6, blocked: false },
+  { id: "road_hd_va", name: "Route HospD-A", from: "node_h_d", to: "node_v_a", distance: 11.2, travelTime: 14, blocked: false }
 ];
 
 export const MOCK_AMBULANCES = [
-  { id: "amb_04", code: "Ambulance #04", status: "En Route", driver: "Ramesh Kumar", locationNode: "node_v_d", targetNode: "node_h_b", speed: 58, eta: "12 min", progressPct: 75, patientType: "Critical" },
+  { id: "amb_02", code: "Ambulance #02", status: "Available", driver: "Vikram S.", locationNode: "node_v_d", speed: 0, eta: "--", progressPct: 0 },
+  { id: "amb_04", code: "Ambulance #04", status: "Available", driver: "Ramesh Kumar", locationNode: "node_v_d", speed: 0, eta: "--", progressPct: 0 },
   { id: "amb_01", code: "Ambulance #01", status: "Available", driver: "Suresh P.", locationNode: "node_h_a", speed: 0, eta: "--", progressPct: 0 },
-  { id: "amb_02", code: "Ambulance #02", status: "Available", driver: "Vikram S.", locationNode: "node_hc_1", speed: 0, eta: "--", progressPct: 0 },
   { id: "amb_03", code: "Ambulance #03", status: "Available", driver: "Anil M.", locationNode: "node_h_d", speed: 0, eta: "--", progressPct: 0 },
   { id: "amb_05", code: "Ambulance #05", status: "Available", driver: "Mohan K.", locationNode: "node_h_c", speed: 0, eta: "--", progressPct: 0 },
   { id: "amb_06", code: "Ambulance #06", status: "Available", driver: "Deepak R.", locationNode: "node_v_b", speed: 0, eta: "--", progressPct: 0 },
@@ -131,26 +131,17 @@ export const MOCK_DOCTORS = [
 
 export const INITIAL_EMERGENCY = {
   id: "#101",
-  village: "Village A",
+  village: "Village D",
   type: "Cardiology",
   urgency: "Critical",
   requestedAt: "10:32 AM",
-  assignedAmbulance: "Ambulance #04",
-  assignedDoctor: "Dr. Patel",
-  assignedHospital: "Hospital B",
-  status: "En Route",
-  distance: "14.2 km",
-  estimatedTime: "12 min",
-  via: "Village B → Village D",
-  isDemoScenario: true
+  status: "Created"
 };
 
 export const INITIAL_LOGS = [
-  { id: 1, time: "10:32:01", type: "create", text: "Emergency #101 Created (Village A - Cardiology)" },
-  { id: 2, time: "10:32:05", type: "assign", text: "Ambulance #04 Assigned to Emergency #101" },
-  { id: 3, time: "10:32:10", type: "route", text: "Route Request Created" },
-  { id: 4, time: "10:33:20", type: "warning", text: "Road R17 Blocked" },
-  { id: 5, time: "10:33:21", type: "engine", text: "Routing Engine Waiting for Phase 2" }
+  { id: 1, time: "10:32:01", type: "create", text: "Emergency #101 created (Village D)" },
+  { id: 2, time: "10:32:03", type: "info", text: "Cardiology requirement detected" },
+  { id: 3, time: "10:32:04", type: "assign", text: "Hospital C selected — cardiologist available" }
 ];
 
 export const INITIAL_CAPACITY = {
