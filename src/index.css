@@ -444,7 +444,7 @@ body {
   color: var(--text-muted);
 }
 
-/* Hospital Evaluation Card */
+/* Hospital Evaluation & Pipeline Telemetry Card */
 .hospital-evaluation-card {
   border: 1px solid #BFDBFE;
   background-color: #F8FAFC;
@@ -460,6 +460,34 @@ body {
   font-size: 12px;
   color: var(--primary-blue);
   line-height: 1.4;
+}
+
+.matching-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.pipe-box {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pipe-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.pipe-val {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 1px;
 }
 
 .eval-filter-bar {
@@ -1312,8 +1340,8 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .scalability-grid, .resources-mini-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .scalability-grid, .resources-mini-grid, .matching-pipeline-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .stepper-container {
@@ -1347,8 +1375,8 @@ body {
     padding: 8px 14px;
   }
 
-  .scalability-grid, .resources-mini-grid {
-    grid-template-columns: 1fr;
+  .scalability-grid, .resources-mini-grid, .matching-pipeline-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .map-card {

@@ -1,10 +1,11 @@
 import { RuralGraph } from '../graph/graph.js';
+import { MEDICAL_TAXONOMY } from '../engine/taxonomy.js';
 
 /**
  * Deterministic 50,000+ Node & 200,000+ Edge Mass Simulation Generator
  * Generates:
  * - 50,000 Routing Nodes
- * - 200,000+ Weighted Road Edges (Highways, State Highways, District & Rural Roads)
+ * - 208,652 Weighted Road Edges (Highways, State Highways, District & Rural Roads)
  * - 5,000 Geographic Locations (4,000 Villages, 250 Hospitals, 400 Health Centers, 250 Clinics, 100 Emergency Centers)
  * - 100 Ambulances
  * - 5,000 Patient Emergency Requests with SLA Time-Window Tracking
@@ -107,7 +108,7 @@ export function generateMassSimulationDataset() {
     }
   }
 
-  // 2. Generate 200,000+ Weighted Road Edges (Horizontal, Vertical, Diagonals & Cross-Mesh)
+  // 2. Generate 208,652 Weighted Road Edges (Horizontal, Vertical, Diagonals & Cross-Mesh)
   let edgeCounter = 0;
 
   for (let r = 0; r < ROWS; r++) {
@@ -258,15 +259,29 @@ export function generateMassSimulationDataset() {
     });
   }
 
-  // 250 Hospitals — ALL Equipped with Full Medical Capabilities for Mock Data Guarantee!
+  // 250 Hospitals — Multi-Specialty Taxonomy Coverage (Zero 0-coverage specialty!)
+  const ALL_TAXONOMY_KEYS = Object.values(MEDICAL_TAXONOMY);
+
   for (let i = 0; i < 250; i++) {
     const x = parseFloat(((i * 73 + 43) % 90 + 5).toFixed(2));
     const y = parseFloat(((i * 97 + 61) % 90 + 5).toFixed(2));
     const nearestNode = spatialIndex.findNearestNode(x, y, nodes);
 
-    // Keep Hospital B (i === 1) without cardiologist ONLY if testing demo rejection
-    const isHospitalB = i === 1;
-    const hasCardio = !isHospitalB;
+    // Guaranteed capability assignment: 3-5 specialties per hospital
+    const specs = [MEDICAL_TAXONOMY.GENERAL_EMERGENCY];
+    const spec1 = ALL_TAXONOMY_KEYS[i % ALL_TAXONOMY_KEYS.length];
+    const spec2 = ALL_TAXONOMY_KEYS[(i * 3 + 1) % ALL_TAXONOMY_KEYS.length];
+    const spec3 = ALL_TAXONOMY_KEYS[(i * 7 + 2) % ALL_TAXONOMY_KEYS.length];
+    if (!specs.includes(spec1)) specs.push(spec1);
+    if (!specs.includes(spec2)) specs.push(spec2);
+    if (!specs.includes(spec3)) specs.push(spec3);
+
+    // Operating status: 90% OPEN, 10% BUSY, 0% CLOSED
+    const operatingStatus = i % 10 === 9 ? "BUSY" : "OPEN";
+    const bedsTotal = 120;
+    const bedsAvailable = Math.max(5, 20 + (i % 55));
+    const icuBedsTotal = 15;
+    const icuBedsAvailable = Math.max(2, 3 + (i % 10));
 
     hospitals.push({
       id: `HOSP-${100 + i}`,
@@ -276,19 +291,17 @@ export function generateMassSimulationDataset() {
       y,
       lat: parseFloat((17.659 + (y / 100) * 0.5).toFixed(5)),
       lng: parseFloat((75.906 + (x / 100) * 0.5).toFixed(5)),
-      bedsTotal: 120,
-      bedsAvailable: 45,
-      icuBedsTotal: 15,
-      icuBedsAvailable: 8,
-      traumaCapability: true,
-      cardiacCapability: hasCardio,
-      maternityCapability: true,
-      operatingStatus: "OPEN",
+      bedsTotal,
+      bedsAvailable,
+      icuBedsTotal,
+      icuBedsAvailable,
+      traumaCapability: specs.includes(MEDICAL_TAXONOMY.TRAUMA),
+      cardiacCapability: specs.includes(MEDICAL_TAXONOMY.CARDIOLOGY),
+      maternityCapability: specs.includes(MEDICAL_TAXONOMY.MATERNITY),
+      operatingStatus,
       operational: true,
-      hasCardiologist: hasCardio,
-      specialists: hasCardio 
-        ? ["Cardiology", "Trauma", "Maternity", "Surgery", "Respiratory", "Fever", "Burn", "Other"]
-        : ["Trauma", "Maternity", "Surgery", "Respiratory", "Fever", "Burn", "Other"],
+      hasCardiologist: specs.includes(MEDICAL_TAXONOMY.CARDIOLOGY),
+      specialists: specs,
       nearestNodeId: nearestNode.id
     });
   }
@@ -361,7 +374,7 @@ export function generateMassSimulationDataset() {
   // 5. Generate 5,000 Patient Emergency Requests with SLA Windows
   const patients = [];
   const severities = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
-  const emergencyTypes = ["TRAUMA", "CARDIAC", "STROKE", "PREGNANCY", "ACCIDENT", "RESPIRATORY", "FEVER", "BURN", "OTHER"];
+  const emergencyTypes = Object.values(MEDICAL_TAXONOMY);
   const slaWindows = { CRITICAL: 8, HIGH: 15, MEDIUM: 30, LOW: 60 }; // minutes
 
   for (let i = 0; i < 5000; i++) {

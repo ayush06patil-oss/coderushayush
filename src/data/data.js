@@ -23,7 +23,9 @@ export const MOCK_NODES = [
     bedsTotal: 60, 
     bedsAvailable: 45,
     distanceKm: 18,
-    specialists: ["General", "Orthopedics", "Pediatrics"],
+    operational: true,
+    operatingStatus: "OPEN",
+    specialists: ["GENERAL_EMERGENCY", "ORTHOPEDICS", "PEDIATRICS", "MATERNITY", "RESPIRATORY", "SURGERY"],
     hasCardiologist: false
   },
   { 
@@ -35,7 +37,9 @@ export const MOCK_NODES = [
     bedsTotal: 40, 
     bedsAvailable: 18,
     distanceKm: 10,
-    specialists: ["Trauma", "General"],
+    operational: true,
+    operatingStatus: "OPEN",
+    specialists: ["TRAUMA", "GENERAL_EMERGENCY", "ORTHOPEDICS", "SURGERY", "RESPIRATORY"],
     hasCardiologist: false
   },
   { 
@@ -47,7 +51,9 @@ export const MOCK_NODES = [
     bedsTotal: 100, 
     bedsAvailable: 72,
     distanceKm: 25,
-    specialists: ["Cardiology", "Neurology", "ICU", "Trauma"],
+    operational: true,
+    operatingStatus: "OPEN",
+    specialists: ["CARDIOLOGY", "NEUROLOGY", "TRAUMA", "GENERAL_EMERGENCY", "ORTHOPEDICS", "MATERNITY", "PEDIATRICS", "BURN_CARE", "RESPIRATORY", "SURGERY"],
     hasCardiologist: true
   },
   { 
@@ -59,7 +65,9 @@ export const MOCK_NODES = [
     bedsTotal: 50, 
     bedsAvailable: 22, 
     distanceKm: 14,
-    specialists: ["General", "Pediatrics"],
+    operational: true,
+    operatingStatus: "OPEN",
+    specialists: ["GENERAL_EMERGENCY", "PEDIATRICS", "MATERNITY", "RESPIRATORY"],
     hasCardiologist: false 
   },
   { 
@@ -71,7 +79,9 @@ export const MOCK_NODES = [
     bedsTotal: 150, 
     bedsAvailable: 95, 
     distanceKm: 32,
-    specialists: ["Trauma", "Cardiology", "Neurology", "Orthopedics"],
+    operational: true,
+    operatingStatus: "OPEN",
+    specialists: ["TRAUMA", "CARDIOLOGY", "NEUROLOGY", "ORTHOPEDICS", "GENERAL_EMERGENCY", "SURGERY", "BURN_CARE"],
     hasCardiologist: true 
   },
 

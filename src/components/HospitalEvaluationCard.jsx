@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, CheckCircle2, XCircle, ChevronDown, ChevronUp, AlertCircle, Filter } from 'lucide-react';
+import { Building2, CheckCircle2, XCircle, ChevronDown, ChevronUp, AlertCircle, Filter, Activity, ShieldCheck, Clock } from 'lucide-react';
 
 export default function HospitalEvaluationCard({ evaluationResult, currentEmergency }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -7,7 +7,7 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
 
   if (!evaluationResult || !evaluationResult.evaluationList) return null;
 
-  const { evaluationList, selectedHospital } = evaluationResult;
+  const { evaluationList, selectedHospital, debugTelemetry } = evaluationResult;
   const reqType = currentEmergency?.type || "Cardiology";
 
   // Find Hospital B & Hospital C for primary demo callout
@@ -28,10 +28,10 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
         <div>
           <h3 className="card-title inline-flex items-center gap-2 text-primary">
             <Building2 size={18} />
-            Hospital Evaluation (Specialist & Reachability Filter)
+            Healthcare Matching Pipeline & Telemetry
           </h3>
           <p className="card-subtitle-text">
-            System evaluates medical requirements and road reachability before running graph routing.
+            Multi-tier medical suitability + capacity + graph road reachability + SLA prediction pipeline.
           </p>
         </div>
         <button className="log-toggle-btn">
@@ -48,6 +48,36 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
               <strong>Nearest hospital ≠ Always best hospital:</strong> Hospital B was closer ({hospB?.distanceFormatted || '18.9 km'}), but rejected because the required {reqType.toLowerCase()} specialist was unavailable. Hospital C ({hospC?.distanceFormatted || '34.3 km'}) was selected because it satisfies all medical and road reachability constraints.
             </span>
           </div>
+
+          {/* Pipeline Telemetry Metrics Grid */}
+          {debugTelemetry && (
+            <div className="matching-pipeline-grid mt-3">
+              <div className="pipe-box">
+                <span className="pipe-label">Hospitals Loaded</span>
+                <span className="pipe-val">{debugTelemetry.totalHospitals}</span>
+              </div>
+              <div className="pipe-box">
+                <span className="pipe-label">Requirement</span>
+                <span className="pipe-val text-primary">{debugTelemetry.reqSpecialtyNormalized}</span>
+              </div>
+              <div className="pipe-box">
+                <span className="pipe-label">Capability Matches</span>
+                <span className="pipe-val text-purple">{debugTelemetry.capabilityMatches}</span>
+              </div>
+              <div className="pipe-box">
+                <span className="pipe-label">Capacity Matches</span>
+                <span className="pipe-val text-success">{debugTelemetry.capacityMatches}</span>
+              </div>
+              <div className="pipe-box">
+                <span className="pipe-label">Reachable Hospitals</span>
+                <span className="pipe-val text-primary">{debugTelemetry.reachableHospitals}</span>
+              </div>
+              <div className="pipe-box">
+                <span className="pipe-label">SLA Prediction</span>
+                <span className="pipe-val text-warning">{debugTelemetry.slaSafeCount} Safe | {debugTelemetry.slaAtRiskCount} Risk</span>
+              </div>
+            </div>
+          )}
 
           {/* Filter Toggle & Item Count Bar */}
           <div className="eval-filter-bar mt-3">
@@ -108,7 +138,7 @@ export default function HospitalEvaluationCard({ evaluationResult, currentEmerge
                     <div className="eval-item-details">
                       {item.isEligible ? (
                         <span className="text-success font-semibold inline-flex items-center gap-1">
-                          ✓ {reqType} Specialist Available ({h.bedsAvailable || 72} beds, {h.medicineStock || 82}% Meds)
+                          ✓ {reqType} Specialist Available ({h.bedsAvailable || 72} beds, {item.slaStatus || 'SLA_SAFE'})
                         </span>
                       ) : (
                         <span className="text-danger font-semibold inline-flex items-center gap-1">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Building2, CheckCircle2, XCircle, ArrowRight, AlertTriangle } from 'lucide-react';
+import { formatSpecialtyName } from '../engine/taxonomy';
 
 export default function Step2HospitalMatching({ 
   currentEmergency, 
@@ -7,8 +8,10 @@ export default function Step2HospitalMatching({
   onSelectDestination 
 }) {
   const reqType = currentEmergency?.type || "Cardiology";
+  const reqFormatted = formatSpecialtyName(reqType);
   const evaluationList = evaluationResult?.evaluationList || [];
   const selectedHospital = evaluationResult?.selectedHospital || null;
+  const reasonCode = evaluationResult?.reasonCode || "MATCH_SUCCESS";
   const isSelectable = !!selectedHospital;
 
   // Filter to show eligible hospitals and key demo comparison candidate (Hospital B)
@@ -27,7 +30,7 @@ export default function Step2HospitalMatching({
       </div>
 
       <div className="emergency-summary-banner">
-        <span>Active Emergency: <strong>{currentEmergency?.id || "#101"}</strong> ({currentEmergency?.village || "Village D"} → <strong>{reqType}</strong>)</span>
+        <span>Active Emergency: <strong>{currentEmergency?.id || "#101"}</strong> ({currentEmergency?.village || "Village D"} → <strong>{reqFormatted}</strong>)</span>
       </div>
 
       {/* Scrollable Matching Candidates List */}
@@ -50,7 +53,7 @@ export default function Step2HospitalMatching({
                   {item.isEligible ? (
                     <>
                       <CheckCircle2 size={16} />
-                      <span>On-Duty {reqType} Specialist Available ({h.bedsAvailable || 72} beds)</span>
+                      <span>On-Duty {reqFormatted} Specialist Available ({h.bedsAvailable || 72} beds, {item.slaStatus || 'SLA_SAFE'})</span>
                     </>
                   ) : (
                     <>
@@ -79,7 +82,7 @@ export default function Step2HospitalMatching({
           className="btn btn-danger btn-full mt-3 disabled cursor-not-allowed"
         >
           <AlertTriangle size={16} />
-          <span>❌ NO SUITABLE HOSPITAL AVAILABLE</span>
+          <span>❌ REASON: {reasonCode}</span>
         </button>
       )}
     </div>
