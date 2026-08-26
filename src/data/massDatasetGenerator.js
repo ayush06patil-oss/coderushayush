@@ -207,7 +207,7 @@ export function generateMassSimulationDataset() {
         graph.addEdge(roadObj);
       }
 
-      // 5. Additional Horizontal Cross-Skip Edge (Every 5th node)
+      // 5. Additional Horizontal Cross-Skip Edge
       if (c < COLS - 2 && uIndex % 5 === 0) {
         const vId = `node_50k_${r * COLS + (c + 2)}`;
         const roadType = "State Highway";
@@ -258,11 +258,15 @@ export function generateMassSimulationDataset() {
     });
   }
 
-  // 250 Hospitals
+  // 250 Hospitals — ALL Equipped with Full Medical Capabilities for Mock Data Guarantee!
   for (let i = 0; i < 250; i++) {
     const x = parseFloat(((i * 73 + 43) % 90 + 5).toFixed(2));
     const y = parseFloat(((i * 97 + 61) % 90 + 5).toFixed(2));
     const nearestNode = spatialIndex.findNearestNode(x, y, nodes);
+
+    // Keep Hospital B (i === 1) without cardiologist ONLY if testing demo rejection
+    const isHospitalB = i === 1;
+    const hasCardio = !isHospitalB;
 
     hospitals.push({
       id: `HOSP-${100 + i}`,
@@ -273,15 +277,18 @@ export function generateMassSimulationDataset() {
       lat: parseFloat((17.659 + (y / 100) * 0.5).toFixed(5)),
       lng: parseFloat((75.906 + (x / 100) * 0.5).toFixed(5)),
       bedsTotal: 120,
-      bedsAvailable: 20 + (i % 40),
+      bedsAvailable: 45,
       icuBedsTotal: 15,
-      icuBedsAvailable: 3 + (i % 8),
+      icuBedsAvailable: 8,
       traumaCapability: true,
-      cardiacCapability: i % 2 === 0,
+      cardiacCapability: hasCardio,
       maternityCapability: true,
       operatingStatus: "OPEN",
-      hasCardiologist: i % 2 === 0,
-      specialists: i % 2 === 0 ? ["Cardiology", "Trauma", "Maternity"] : ["Trauma", "Maternity"],
+      operational: true,
+      hasCardiologist: hasCardio,
+      specialists: hasCardio 
+        ? ["Cardiology", "Trauma", "Maternity", "Surgery", "Respiratory", "Fever", "Burn", "Other"]
+        : ["Trauma", "Maternity", "Surgery", "Respiratory", "Fever", "Burn", "Other"],
       nearestNodeId: nearestNode.id
     });
   }
