@@ -80,7 +80,7 @@ export default function App() {
     return generateMassSimulationDataset();
   }, []);
 
-  // Standard 10-Node Graph initialization
+  // Standard 20-Node Graph initialization
   const standardGraph = useMemo(() => {
     const g = new RuralGraph();
     appState.nodes.forEach(n => g.addNode(n));
@@ -104,6 +104,10 @@ export default function App() {
   const activeHospitals = useMemo(() => {
     return networkMode === "50k" ? massData.hospitals : appState.hospitals;
   }, [networkMode, massData.hospitals, appState.hospitals]);
+
+  const activeVillages = useMemo(() => {
+    return networkMode === "50k" ? massData.villages : appState.nodes.filter(n => n.type === 'village');
+  }, [networkMode, massData.villages, appState.nodes]);
 
   // Simulation Engine instance
   const simEngine = useMemo(() => {
@@ -488,7 +492,7 @@ export default function App() {
               {/* Step 1: Emergency Request */}
               {currentStep === 1 && (
                 <Step1Emergency 
-                  villages={appState.nodes.filter(n => n.type === 'village')}
+                  villages={activeVillages}
                   onCreateEmergency={handleCreateEmergency}
                 />
               )}
