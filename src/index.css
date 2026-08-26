@@ -410,7 +410,7 @@ body {
 }
 
 .road-line-normal { stroke: #CBD5E1; stroke-width: 1.5; }
-.road-line-selected { stroke: var(--primary-blue); stroke-width: 2.5; stroke-linecap: round; }
+.road-line-selected { stroke: var(--primary-blue); stroke-width: 2.8; stroke-linecap: round; }
 .road-line-blocked { stroke: var(--danger-red); stroke-width: 2; stroke-dasharray: 3,3; }
 
 .map-time-label {
@@ -456,6 +456,10 @@ body {
   border: 2px solid var(--primary-blue) !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3) !important;
   transform: translate(-50%, -55%) scale(1.08);
+}
+
+.node-badge.in-path-node {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .node-badge.village { color: var(--primary-blue); border-color: #BFDBFE; }
@@ -568,7 +572,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .form-label {
@@ -593,28 +597,10 @@ body {
   border-color: var(--primary-blue);
 }
 
-.select-with-status {
-  position: relative;
+.routing-controls-group {
   display: flex;
-  align-items: center;
-}
-
-.urgency-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  position: absolute;
-  left: 12px;
-  z-index: 2;
-}
-
-.urgency-dot.critical { background-color: var(--danger-red); }
-.urgency-dot.high { background-color: var(--warning-amber); }
-.urgency-dot.medium { background-color: var(--primary-blue); }
-.urgency-dot.low { background-color: var(--success-green); }
-
-.select-with-status .form-select {
-  padding-left: 28px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 /* Button Components */
@@ -653,6 +639,8 @@ body {
 .btn-full {
   width: 100%;
 }
+
+.mb-3 { margin-bottom: 12px; }
 
 /* Ambulance Tracking Card */
 .amb-top-row {
@@ -728,48 +716,6 @@ body {
   transition: width 0.3s ease;
 }
 
-/* Queue Selector */
-.emergency-queue-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  background-color: #F8FAFC;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-}
-
-.selector-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.queue-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.queue-chip {
-  background: white;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--text-main);
-  transition: all 0.15s ease;
-}
-
-.queue-chip.active {
-  background-color: var(--primary-blue);
-  color: white;
-  border-color: var(--primary-blue);
-}
-
 /* Badges */
 .badge {
   display: inline-flex;
@@ -808,88 +754,59 @@ body {
   color: var(--text-muted);
 }
 
-.specialist-scenario-box {
-  background-color: #F8FAFC;
-  border: 1px dashed var(--border-color);
-  border-radius: 10px;
-  padding: 10px;
-  margin-top: 10px;
-}
-
-.scenario-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 6px;
-}
-
-.scenario-hospitals {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.hospital-option {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.hosp-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 600;
-}
-
-.phase2-pending-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--purple-accent);
-  background-color: var(--purple-accent-light);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
-.demo-notice-box {
+.no-route-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: var(--primary-blue-light);
+  background-color: var(--danger-red-light);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 11px;
-  color: var(--primary-blue);
-  font-weight: 500;
+  color: var(--danger-red);
+  font-weight: 600;
   margin-bottom: 12px;
 }
 
-/* Assigned Resources List */
-.resources-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
+.benchmark-box {
+  background-color: #F8FAFC;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-top: 10px;
 }
 
-.resource-item {
+.benchmark-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 13px;
+  margin-bottom: 8px;
 }
 
-.resource-label-group {
+.benchmark-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
+
+.benchmark-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+}
+
+.benchmark-table th, .benchmark-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.benchmark-table th {
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 /* Secondary Cards Grid */
@@ -946,6 +863,8 @@ body {
   cursor: pointer;
 }
 
+.text-xs { font-size: 11px; }
+
 /* Capacity Cards */
 .capacity-items-grid {
   display: flex;
@@ -981,50 +900,6 @@ body {
 .sim-btn {
   height: 40px;
   margin-bottom: 14px;
-}
-
-/* Modals */
-.simple-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.simple-modal {
-  background-color: white;
-  border-radius: 14px;
-  padding: 24px;
-  max-width: 480px;
-  width: 90%;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-
-.simple-modal.modal-large {
-  max-width: 600px;
-}
-
-.modal-logs-list {
-  max-height: 340px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.modal-body-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
-  margin-top: 12px;
 }
 
 /* Helper Utility Classes */

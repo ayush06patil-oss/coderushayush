@@ -12,7 +12,13 @@ import {
   XCircle
 } from 'lucide-react';
 
-export default function Map({ nodes = [], roads = [], selectedNodeId, onSelectNode }) {
+export default function Map({ 
+  nodes = [], 
+  roads = [], 
+  selectedNodeId, 
+  onSelectNode,
+  calculatedPath = [] // Array of node IDs representing the active calculated path
+}) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePopupNode, setActivePopupNode] = useState(null);
 
@@ -21,10 +27,22 @@ export default function Map({ nodes = [], roads = [], selectedNodeId, onSelectNo
     if (onSelectNode) onSelectNode(node.id);
   };
 
-  // Helper to get node position
   const getNodePos = (nodeId) => {
     const node = nodes.find(n => n.id === nodeId);
     return node ? { x: node.x, y: node.y } : { x: 0, y: 0 };
+  };
+
+  // Helper to determine if a road edge belongs to calculatedPath
+  const isEdgeInCalculatedPath = (road) => {
+    if (!calculatedPath || calculatedPath.length < 2) return false;
+    for (let i = 0; i < calculatedPath.length - 1; i++) {
+      const u = calculatedPath[i];
+      const v = calculatedPath[i + 1];
+      if ((road.from === u && road.to === v) || (road.from === v && road.to === u)) {
+        return true;
+      }
+    }
+    return false;
   };
 
   return (
@@ -45,16 +63,18 @@ export default function Map({ nodes = [], roads = [], selectedNodeId, onSelectNo
       </div>
 
       <div className="map-viewport" style={{ transform: `scale(${zoomLevel})` }}>
-        {/* SVG Network Lines */}
+        {/* SVG Network Canvas */}
         <svg className="map-svg-canvas" viewBox="0 0 100 100" preserveAspectRatio="none">
           {roads.map((road) => {
             const from = getNodePos(road.from);
             const to = getNodePos(road.to);
             if (!from.x || !to.x) return null;
 
+            const isPathEdge = isEdgeInCalculatedPath(road);
+
             let strokeClass = "road-line-normal";
             if (road.blocked) strokeClass = "road-line-blocked";
-            else if (road.isSelected) strokeClass = "road-line-selected";
+            else if (isPathEdge || road.isSelected) strokeClass = "road-line-selected";
 
             return (
               <g key={road.id}>
@@ -66,7 +86,7 @@ export default function Map({ nodes = [], roads = [], selectedNodeId, onSelectNo
                   className={strokeClass}
                 />
 
-                {/* Blocked Road Marker */}
+                {/* Blocked Road Warning Marker */}
                 {road.blocked && (
                   <g transform={`translate(${(from.x + to.x) / 2}, ${(from.y + to.y) / 2})`}>
                     <circle r="2.8" fill="#DC2626" />
@@ -111,11 +131,12 @@ export default function Map({ nodes = [], roads = [], selectedNodeId, onSelectNo
           }
 
           const isSelected = selectedNodeId === node.id;
+          const isInPath = calculatedPath.includes(node.id);
 
           return (
             <div
               key={node.id}
-              className={`${nodeClass} ${isSelected ? 'selected-node-highlight' : ''}`}
+              className={`${nodeClass} ${isSelected ? 'selected-node-highlight' : ''} ${isInPath ? 'in-path-node' : ''}`}
               style={{ left: `${node.x}%`, top: `${node.y}%` }}
               onClick={() => handleNodeClick(node)}
             >
