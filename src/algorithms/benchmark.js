@@ -1,5 +1,5 @@
-import { runDijkstra } from './dijkstra';
-import { runAStar } from './astar';
+import { runDijkstra } from './dijkstra.js';
+import { runAStar } from './astar.js';
 
 /**
  * Dual Algorithm Benchmarking Utility

@@ -1,19 +1,22 @@
 /**
  * Path Interpolator Utility for Smooth Ambulance Trajectory Animation
  * Computes exact (x, y) coordinates along node paths based on percentage progress.
+ * Hardened with defensive boundary checks against missing coordinates or undefined paths.
  */
 
 export function interpolatePathPosition(path, progressPct, nodes) {
-  if (!path || !Array.isArray(path) || path.length === 0 || !nodes) {
-    return { x: 50, y: 50, fromNode: null, toNode: null };
+  const defaultPos = { x: 51, y: 56, fromNode: null, toNode: null };
+
+  if (!path || !Array.isArray(path) || path.length === 0 || !nodes || !Array.isArray(nodes)) {
+    return defaultPos;
   }
 
   // Map path node IDs to full node coordinate objects
   const pathNodes = path
-    .map(id => nodes.find(n => n.id === id))
-    .filter(Boolean);
+    .map(id => nodes.find(n => n && n.id === id))
+    .filter(n => n && typeof n.x === 'number' && typeof n.y === 'number' && !isNaN(n.x) && !isNaN(n.y));
 
-  if (pathNodes.length === 0) return { x: 50, y: 50, fromNode: null, toNode: null };
+  if (pathNodes.length === 0) return defaultPos;
   if (pathNodes.length === 1) return { x: pathNodes[0].x, y: pathNodes[0].y, fromNode: pathNodes[0], toNode: pathNodes[0] };
 
   // Calculate segment lengths in coordinate space
@@ -41,7 +44,8 @@ export function interpolatePathPosition(path, progressPct, nodes) {
   if (totalLength === 0) return { x: pathNodes[0].x, y: pathNodes[0].y, fromNode: pathNodes[0], toNode: pathNodes[0] };
 
   // Determine target distance along trajectory based on progressPct (0 to 100)
-  const targetDist = (Math.max(0, Math.min(100, progressPct)) / 100) * totalLength;
+  const clampedProgress = Math.max(0, Math.min(100, isNaN(progressPct) ? 0 : progressPct));
+  const targetDist = (clampedProgress / 100) * totalLength;
 
   // Find active segment
   const activeSeg = segments.find(s => targetDist >= s.startDist && targetDist <= s.endDist) || segments[segments.length - 1];
