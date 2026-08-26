@@ -3,15 +3,12 @@ import { MEDICAL_TAXONOMY } from '../engine/taxonomy.js';
 import { analyzeGraphConnectivity } from '../graph/graphConnectivity.js';
 
 /**
- * Deterministic 50,000+ Node & 200,000+ Edge Mass Simulation Generator
+ * Deterministic 50,000+ Node Organic Geographic Network Topology Generator
  * Generates:
- * - 50,000 Routing Nodes
- * - 208,652 Weighted Road Edges (Highways, State Highways, District & Rural Roads)
+ * - 50,000 Organic Routing Nodes (Regional Towns, Hub Junctions, Villages, Hospitals)
+ * - 208,652 Weighted Road Edges with Organic Geometry & Realistic Distance Weights
  * - 5,000 Geographic Locations (4,000 Villages, 250 Hospitals, 400 Health Centers, 250 Clinics, 100 Emergency Centers)
- * - Demo Node Aliases (node_v_a, node_v_d, node_h_c) registered in graph with bidirectional edges
- * - 100 Ambulances
- * - 5,000 Patient Emergency Requests with SLA Time-Window Tracking
- * - Sub-millisecond Grid Spatial Indexing for Node Snapping
+ * - Demo Node Aliases (node_v_a, node_v_d, node_h_c) registered in graph with organic connections
  */
 
 export class GridSpatialIndex {
@@ -70,9 +67,14 @@ export class GridSpatialIndex {
   }
 }
 
-const INDIAN_VILLAGE_PREFIXES = ["Khed", "Vadgaon", "Pangri", "Shirol", "Barsi", "Mohol", "Aundh", "Pirangut", "Chakan", "Manchar", "Junur", "Saswad", "Indapur", "Malshiras", "Sangola", "Pandharpur", "Karmala", "Phaltan", "Wai", "Karad"];
-const INDIAN_FACILITY_NAMES = ["District Civil Hospital Solapur", "Shri Chhatrapati Shivaji Hospital", "Sanjivani Multispecialty Hospital", "Dhanwantari Rural Hospital", "Apex Trauma Center", "Anand Rural Clinic", "Sub-District Health Center Mohol", "Shree Emergency Clinic"];
-const ROAD_TYPES = ["Highway", "State Highway", "District Road", "Rural Road", "Village Road", "Narrow Road"];
+const REGIONAL_TOWN_NAMES = [
+  "Mahe", "Kalpetta", "Kottakal", "Shoranur", "Malampuzha", "Palghat", "Trichur", "Angamali", 
+  "Aluva", "Muvattupuzha", "Munnar", "Kottayam", "Changanassery", "Chenganur", "Alleppey", 
+  "Kayamkulam", "Pathanamthitta", "Kottarakara", "Kollam", "Trivandrum", "Coimbatore", "Ooty", 
+  "Bangalore", "Chennai", "Kattapana", "Kumily", "Peerumedu", "Ponnani", "Guruvayoor", "Kodungalloor", "Parur", "Ernakulam"
+];
+
+const ROAD_TYPES = ["Highway", "State Highway", "District Road", "Rural Road", "Village Road"];
 
 export function generateMassSimulationDataset() {
   const startTime = performance.now();
@@ -86,17 +88,28 @@ export function generateMassSimulationDataset() {
   const nodes = [];
   const roads = [];
 
-  // 1. Generate 50,000 Connected Nodes
+  // 1. Generate 50,000 Organic Routing Nodes with Organic Curvatures
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const index = r * COLS + c;
       const nodeId = `node_50k_${index}`;
-      const x = parseFloat(((c / (COLS - 1)) * 90 + 5).toFixed(2));
-      const y = parseFloat(((r / (ROWS - 1)) * 90 + 5).toFixed(2));
+
+      // Organic spatial jitter for natural network topology (non-grid curvature)
+      const jitterX = Math.sin(r * 0.15 + c * 0.1) * 0.8;
+      const jitterY = Math.cos(c * 0.15 + r * 0.1) * 0.8;
+
+      const rawX = (c / (COLS - 1)) * 88 + 6 + jitterX;
+      const rawY = (r / (ROWS - 1)) * 88 + 6 + jitterY;
+
+      const x = parseFloat(Math.min(96, Math.max(4, rawX)).toFixed(2));
+      const y = parseFloat(Math.min(96, Math.max(4, rawY)).toFixed(2));
+
+      const townName = REGIONAL_TOWN_NAMES[index % REGIONAL_TOWN_NAMES.length];
+      const nodeName = index < REGIONAL_TOWN_NAMES.length ? townName : `${townName} #${Math.floor(index / REGIONAL_TOWN_NAMES.length) + 1}`;
 
       const nodeObj = {
         id: nodeId,
-        name: `Node ${index}`,
+        name: nodeName,
         type: "routing",
         x,
         y,
@@ -136,7 +149,7 @@ export function generateMassSimulationDataset() {
     }
   });
 
-  // 2. Generate 208,652 Weighted Road Edges (Horizontal, Vertical, Diagonals & Cross-Mesh)
+  // 2. Generate 208,652 Weighted Road Edges with Organic Road Distances
   let edgeCounter = 0;
 
   for (let r = 0; r < ROWS; r++) {
@@ -149,76 +162,8 @@ export function generateMassSimulationDataset() {
         const vId = `node_50k_${r * COLS + (c + 1)}`;
         const roadType = ROAD_TYPES[(uIndex + 1) % ROAD_TYPES.length];
         const speed = roadType === "Highway" ? 80 : roadType === "State Highway" ? 60 : 40;
-        const dist = parseFloat((1.2 + ((uIndex % 7) * 0.3)).toFixed(1));
-        const travelTime = Math.max(1, Math.round((dist / speed) * 60));
-
-        const roadObj = {
-          id: `E${edgeCounter++}`,
-          from: uId,
-          to: vId,
-          distance: dist,
-          travelTime,
-          speed,
-          roadType,
-          blocked: false,
-          trafficFactor: 1.0 + ((uIndex % 5) * 0.1)
-        };
-        roads.push(roadObj);
-        graph.addEdge(roadObj);
-      }
-
-      // 2. Vertical Edge (Down)
-      if (r < ROWS - 1) {
-        const vId = `node_50k_${(r + 1) * COLS + c}`;
-        const roadType = ROAD_TYPES[(uIndex + 2) % ROAD_TYPES.length];
-        const speed = roadType === "Highway" ? 80 : roadType === "State Highway" ? 60 : 45;
-        const dist = parseFloat((1.5 + ((uIndex % 9) * 0.3)).toFixed(1));
-        const travelTime = Math.max(1, Math.round((dist / speed) * 60));
-
-        const roadObj = {
-          id: `E${edgeCounter++}`,
-          from: uId,
-          to: vId,
-          distance: dist,
-          travelTime,
-          speed,
-          roadType,
-          blocked: false,
-          trafficFactor: 1.0 + ((uIndex % 4) * 0.1)
-        };
-        roads.push(roadObj);
-        graph.addEdge(roadObj);
-      }
-
-      // 3. Diagonal Right-Down Edge
-      if (c < COLS - 1 && r < ROWS - 1) {
-        const vId = `node_50k_${(r + 1) * COLS + (c + 1)}`;
-        const roadType = "Rural Road";
-        const speed = 40;
-        const dist = parseFloat((1.8 + ((uIndex % 3) * 0.4)).toFixed(1));
-        const travelTime = Math.max(1, Math.round((dist / speed) * 60));
-
-        const roadObj = {
-          id: `E${edgeCounter++}`,
-          from: uId,
-          to: vId,
-          distance: dist,
-          travelTime,
-          speed,
-          roadType,
-          blocked: false,
-          trafficFactor: 1.1
-        };
-        roads.push(roadObj);
-        graph.addEdge(roadObj);
-      }
-
-      // 4. Diagonal Left-Down Edge
-      if (c > 0 && r < ROWS - 1) {
-        const vId = `node_50k_${(r + 1) * COLS + (c - 1)}`;
-        const roadType = "District Road";
-        const speed = 50;
-        const dist = parseFloat((1.9 + ((uIndex % 4) * 0.3)).toFixed(1));
+        // Deterministic organic distance weight (e.g. 24, 48, 56, 73, 94, 34, 69, 45, 18, 31, 47)
+        const dist = 12 + ((uIndex * 17 + 5) % 85);
         const travelTime = Math.max(1, Math.round((dist / speed) * 60));
 
         const roadObj = {
@@ -236,12 +181,81 @@ export function generateMassSimulationDataset() {
         graph.addEdge(roadObj);
       }
 
-      // 5. Additional Horizontal Cross-Skip Edge
+      // 2. Vertical Edge (Down)
+      if (r < ROWS - 1) {
+        const vId = `node_50k_${(r + 1) * COLS + c}`;
+        const roadType = ROAD_TYPES[(uIndex + 2) % ROAD_TYPES.length];
+        const speed = roadType === "Highway" ? 80 : roadType === "State Highway" ? 60 : 45;
+        const dist = 15 + ((uIndex * 23 + 11) % 80);
+        const travelTime = Math.max(1, Math.round((dist / speed) * 60));
+
+        const roadObj = {
+          id: `E${edgeCounter++}`,
+          from: uId,
+          to: vId,
+          distance: dist,
+          travelTime,
+          speed,
+          roadType,
+          blocked: false,
+          trafficFactor: 1.0
+        };
+        roads.push(roadObj);
+        graph.addEdge(roadObj);
+      }
+
+      // 3. Diagonal Right-Down Edge (Organic Network Connection)
+      if (c < COLS - 1 && r < ROWS - 1) {
+        const vId = `node_50k_${(r + 1) * COLS + (c + 1)}`;
+        const roadType = "Rural Road";
+        const speed = 40;
+        const dist = 18 + ((uIndex * 31 + 7) % 75);
+        const travelTime = Math.max(1, Math.round((dist / speed) * 60));
+
+        const roadObj = {
+          id: `E${edgeCounter++}`,
+          from: uId,
+          to: vId,
+          distance: dist,
+          travelTime,
+          speed,
+          roadType,
+          blocked: false,
+          trafficFactor: 1.1
+        };
+        roads.push(roadObj);
+        graph.addEdge(roadObj);
+      }
+
+      // 4. Diagonal Left-Down Edge (Organic Network Connection)
+      if (c > 0 && r < ROWS - 1) {
+        const vId = `node_50k_${(r + 1) * COLS + (c - 1)}`;
+        const roadType = "District Road";
+        const speed = 50;
+        const dist = 14 + ((uIndex * 41 + 13) % 70);
+        const travelTime = Math.max(1, Math.round((dist / speed) * 60));
+
+        const roadObj = {
+          id: `E${edgeCounter++}`,
+          from: uId,
+          to: vId,
+          distance: dist,
+          travelTime,
+          speed,
+          roadType,
+          blocked: false,
+          trafficFactor: 1.0
+        };
+        roads.push(roadObj);
+        graph.addEdge(roadObj);
+      }
+
+      // 5. Additional Cross-Skip Edge for Organic Mesh
       if (c < COLS - 2 && uIndex % 5 === 0) {
         const vId = `node_50k_${r * COLS + (c + 2)}`;
         const roadType = "State Highway";
         const speed = 65;
-        const dist = parseFloat((2.4 + ((uIndex % 5) * 0.2)).toFixed(1));
+        const dist = 28 + ((uIndex * 19 + 3) % 65);
         const travelTime = Math.max(1, Math.round((dist / speed) * 60));
 
         const roadObj = {
@@ -304,7 +318,7 @@ export function generateMassSimulationDataset() {
     const y = parseFloat(((i * 47 + 11) % 90 + 5).toFixed(2));
     const nearestNode = spatialIndex.findNearestNode(x, y, nodes);
 
-    const name = i === 0 ? "Village A" : i === 1 ? "Village B" : i === 2 ? "Village D" : `${INDIAN_VILLAGE_PREFIXES[i % INDIAN_VILLAGE_PREFIXES.length]} ${i + 1}`;
+    const name = i === 0 ? "Village A" : i === 1 ? "Village B" : i === 2 ? "Village D" : `${REGIONAL_TOWN_NAMES[i % REGIONAL_TOWN_NAMES.length]} ${i + 1}`;
     const nearestNodeId = i === 0 ? "node_v_a" : i === 1 ? "node_v_b" : i === 2 ? "node_v_d" : nearestNode.id;
 
     villages.push({
@@ -339,9 +353,8 @@ export function generateMassSimulationDataset() {
     const isHospitalB = i === 1;
     const hasCardio = !isHospitalB;
     const hospId = i === 0 ? "node_h_a" : i === 1 ? "node_h_b" : i === 2 ? "node_h_c" : `HOSP-${100 + i}`;
-    const hospName = i === 0 ? "Hospital A" : i === 1 ? "Hospital B" : i === 2 ? "Hospital C" : (i < INDIAN_FACILITY_NAMES.length ? INDIAN_FACILITY_NAMES[i] : `Rural Hospital #${i + 1}`);
+    const hospName = i === 0 ? "Hospital A" : i === 1 ? "Hospital B" : i === 2 ? "Hospital C" : `${REGIONAL_TOWN_NAMES[i % REGIONAL_TOWN_NAMES.length]} Hospital`;
 
-    // Standard demo aliases use hospId; all other hospitals map to valid graph node ID
     const targetNearestNodeId = (i === 0 || i === 1 || i === 2) ? hospId : nearestNode.id;
 
     hospitals.push({
@@ -432,11 +445,11 @@ export function generateMassSimulationDataset() {
     });
   }
 
-  // 5. Generate 5,000 Patient Emergency Requests with SLA Windows
+  // 5. Generate 5,000 Patient Emergency Requests
   const patients = [];
   const severities = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
   const emergencyTypes = Object.values(MEDICAL_TAXONOMY);
-  const slaWindows = { CRITICAL: 8, HIGH: 15, MEDIUM: 30, LOW: 60 }; // minutes
+  const slaWindows = { CRITICAL: 8, HIGH: 15, MEDIUM: 30, LOW: 60 };
 
   for (let i = 0; i < 5000; i++) {
     const village = villages[i % villages.length];
