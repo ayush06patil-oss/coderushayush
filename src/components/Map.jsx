@@ -17,10 +17,14 @@ export default function Map({
   roads = [], 
   selectedNodeId, 
   onSelectNode,
-  calculatedPath = [] // Array of node IDs representing the active calculated path
+  calculatedPath = []
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePopupNode, setActivePopupNode] = useState(null);
+
+  // Filter primary demo scenario nodes to reduce visual clutter
+  const primaryScenarioNodeIds = ["node_v_a", "node_v_b", "node_v_d", "node_h_b", "node_h_c", "node_hc_1"];
+  const displayNodes = nodes.filter(n => primaryScenarioNodeIds.includes(n.id) || calculatedPath.includes(n.id));
 
   const handleNodeClick = (node) => {
     setActivePopupNode(node);
@@ -32,7 +36,6 @@ export default function Map({
     return node ? { x: node.x, y: node.y } : { x: 0, y: 0 };
   };
 
-  // Helper to determine if a road edge belongs to calculatedPath
   const isEdgeInCalculatedPath = (road) => {
     if (!calculatedPath || calculatedPath.length < 2) return false;
     for (let i = 0; i < calculatedPath.length - 1; i++) {
@@ -46,9 +49,12 @@ export default function Map({
   };
 
   return (
-    <div className="map-card">
+    <div className="map-card primary-demo-map">
       <div className="map-header">
-        <h2 className="map-title">Live Map</h2>
+        <h2 className="map-title inline-flex items-center gap-2">
+          <span>Live Interactive Map</span>
+          <span className="badge badge-success">Active Visual Canvas</span>
+        </h2>
         <div className="map-controls">
           <button className="map-ctrl-btn" onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.3))} title="Zoom In">
             <Plus size={16} />
@@ -103,13 +109,14 @@ export default function Map({
           const from = getNodePos(road.from);
           const to = getNodePos(road.to);
           if (!from.x || !to.x) return null;
+          const isPathEdge = isEdgeInCalculatedPath(road);
           const midX = (from.x + to.x) / 2;
           const midY = (from.y + to.y) / 2 - 2;
 
           return (
             <div
               key={`label_${road.id}`}
-              className="map-time-label"
+              className={`map-time-label ${isPathEdge ? 'active-path-label' : ''}`}
               style={{ left: `${midX}%`, top: `${midY}%` }}
             >
               {road.travelTime} min
@@ -118,7 +125,7 @@ export default function Map({
         })}
 
         {/* HTML Node Badges */}
-        {nodes.map((node) => {
+        {displayNodes.map((node) => {
           let nodeIcon = <Home size={14} />;
           let nodeClass = "node-badge village";
 
@@ -146,12 +153,12 @@ export default function Map({
           );
         })}
 
-        {/* Ambulance Marker overlay */}
+        {/* Animated Ambulance Marker overlay */}
         <div 
           className="map-ambulance-marker"
           style={{ left: "57%", top: "60%" }}
-          title="Ambulance #04 En Route"
-          onClick={() => handleNodeClick({ id: "amb_04", name: "Ambulance #04", type: "ambulance", details: "En Route from Village D to Hospital B (ETA 12 min)" })}
+          title="Ambulance #02 En Route"
+          onClick={() => handleNodeClick({ id: "amb_02", name: "Ambulance #02", type: "ambulance", details: "En Route from Village A to Hospital C (ETA 12 min)" })}
         >
           <Truck size={14} />
         </div>

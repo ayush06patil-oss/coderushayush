@@ -1,20 +1,21 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Header from './components/Header';
-import TopStats from './components/TopStats';
+import WorkflowStepper from './components/WorkflowStepper';
+import Step1Emergency from './components/Step1Emergency';
+import Step2HospitalMatching from './components/Step2HospitalMatching';
+import Step3RoutingControls from './components/Step3RoutingControls';
+import RouteResultCard from './components/RouteResultCard';
+import AlgorithmComparisonCard from './components/AlgorithmComparisonCard';
+import RoadFailureDemo from './components/RoadFailureDemo';
+import AmbulanceDispatchPanel from './components/AmbulanceDispatchPanel';
+import DecisionLogCollapsible from './components/DecisionLogCollapsible';
 import Map from './components/Map';
-import EmergencyPanel from './components/EmergencyPanel';
-import AmbulanceTracking from './components/AmbulanceTracking';
-import ActiveEmergencyCard from './components/ActiveEmergencyCard';
-import RouteSummary from './components/RouteSummary';
-import AssignedResources from './components/AssignedResources';
-import Logs from './components/Logs';
-import CapacityCard from './components/CapacityCard';
-import SimulationControls from './components/SimulationControls';
 
 import { RuralGraph } from './graph/graph';
 import { SimulationEngine } from './simulation/simulation';
 import { calculateRoute } from './algorithms/routingEngine';
 import { runBenchmark } from './algorithms/benchmark';
+
 import { 
   MOCK_NODES, 
   MOCK_ROADS, 
@@ -26,12 +27,15 @@ import {
 } from './data/data';
 
 export default function App() {
+  const [currentStep, setCurrentStep] = useState(1);
   const [selectedNodeId, setSelectedNodeId] = useState("node_v_a");
-  const [selectedEmergencyId, setSelectedEmergencyId] = useState("#101");
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
   const [targetHospitalId, setTargetHospitalId] = useState("node_h_c");
 
-  // Routing State
+  // Active Emergency State
+  const [currentEmergency, setCurrentEmergency] = useState(INITIAL_EMERGENCY);
+
+  // Routing Results State
   const [routeResult, setRouteResult] = useState(null);
   const [benchmarkResult, setBenchmarkResult] = useState(null);
 
@@ -42,23 +46,6 @@ export default function App() {
     ambulances: MOCK_AMBULANCES,
     hospitals: MOCK_NODES.filter(n => n.type === 'hospital'),
     doctors: MOCK_DOCTORS,
-    emergencies: [
-      INITIAL_EMERGENCY,
-      {
-        id: "#102",
-        village: "Village D",
-        type: "Trauma",
-        urgency: "High",
-        requestedAt: "10:30 AM",
-        assignedAmbulance: "Ambulance #06",
-        assignedDoctor: "Dr. Singh",
-        assignedHospital: "Hospital B",
-        status: "En Route",
-        distance: "--",
-        estimatedTime: "--",
-        via: "--"
-      }
-    ],
     logs: INITIAL_LOGS,
     capacity: INITIAL_CAPACITY
   });
@@ -76,214 +63,180 @@ export default function App() {
     return new SimulationEngine(graph);
   }, [graph]);
 
-  // Active emergency & node helper
-  const activeSelectedEmergency = appState.emergencies.find(e => e.id === selectedEmergencyId) || appState.emergencies[0];
-
-  // Helper to map village name to node ID
-  const getStartNodeIdForEmergency = (emergency) => {
+  // Helper: Get node ID for emergency village
+  const getStartNodeId = (emergency) => {
     const villageName = emergency?.village || "Village A";
     const foundNode = appState.nodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
     return foundNode ? foundNode.id : "node_v_a";
   };
 
-  // Execution Handler: Run Routing Engine
-  const handleRunRouting = (customAlgorithm, customStartId, customTargetId) => {
-    const algo = customAlgorithm || selectedAlgorithm;
-    const startId = customStartId || getStartNodeIdForEmergency(activeSelectedEmergency);
-    const targetId = customTargetId || targetHospitalId;
-
-    const startNode = appState.nodes.find(n => n.id === startId);
-    const targetNode = appState.nodes.find(n => n.id === targetId);
+  // STEP 1 HANDLER: Create Emergency
+  const handleCreateEmergency = (req) => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const newId = `#${Math.floor(103 + Math.random() * 900)}`;
 
-    // 1. Calculate Primary Route using selected algorithm
+    const newEmergency = {
+      id: newId,
+      village: req.village,
+      type: req.type,
+      urgency: req.urgency,
+      requestedAt: timestamp,
+      status: "Created"
+    };
+
+    setCurrentEmergency(newEmergency);
+
+    const log1 = { id: Date.now(), time: timestamp, type: "create", text: `Emergency ${newId} created (${req.village})` };
+    const log2 = { id: Date.now() + 1, time: timestamp, type: "info", text: `${req.type} requirement detected` };
+
+    setAppState(prev => ({
+      ...prev,
+      logs: [log1, log2, ...prev.logs]
+    }));
+
+    // Advance to Step 2: Hospital Matching
+    setCurrentStep(2);
+  };
+
+  // STEP 2 HANDLER: Select Hospital Destination
+  const handleSelectDestination = (hospitalId) => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const hospitalNode = appState.nodes.find(n => n.id === hospitalId);
+
+    setTargetHospitalId(hospitalId);
+
+    const log = {
+      id: Date.now(),
+      time: timestamp,
+      type: "assign",
+      text: `${hospitalNode?.name || "Hospital C"} selected as destination (${currentEmergency?.type} available)`
+    };
+
+    setAppState(prev => ({
+      ...prev,
+      logs: [log, ...prev.logs]
+    }));
+
+    // Advance to Step 3: Routing Engine
+    setCurrentStep(3);
+  };
+
+  // STEP 3 HANDLER: Calculate Route
+  const handleCalculateRoute = () => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const startId = getStartNodeId(currentEmergency);
+
+    // Run primary algorithm calculation
     const res = calculateRoute({
-      algorithm: algo,
+      algorithm: selectedAlgorithm,
       startNodeId: startId,
-      targetNodeId: targetId,
+      targetNodeId: targetHospitalId,
       graph
     });
 
-    // 2. Calculate Dual Algorithm Benchmark
-    const bench = runBenchmark(startId, targetId, graph);
+    // Run dual benchmark execution
+    const bench = runBenchmark(startId, targetHospitalId, graph);
 
     setRouteResult(res);
     setBenchmarkResult(bench);
 
-    // 3. Add Real Decision Logs
     const log1 = {
       id: Date.now(),
       time: timestamp,
       type: "route",
-      text: `Routing request received (${startNode?.name || startId} → ${targetNode?.name || targetId})`
+      text: `${res.algorithm} routing started for ${currentEmergency?.id || "#101"}`
     };
     const log2 = {
       id: Date.now() + 1,
       time: timestamp,
-      type: "info",
-      text: `Algorithm selected: ${res.algorithm}`
-    };
-    const log3 = {
-      id: Date.now() + 2,
-      time: timestamp,
       type: res.status === "FOUND" ? "assign" : "warning",
       text: res.status === "FOUND" 
         ? `Route found: ${res.distance} km (${res.travelTime} min) | Visited nodes: ${res.visitedNodes}`
-        : `No valid route available between ${startNode?.name} and ${targetNode?.name}`
+        : `No valid route available`
     };
 
-    // 4. Update Emergency Object details if route found
-    const updatedEmergencies = appState.emergencies.map(e => {
-      if (e.id === activeSelectedEmergency.id) {
-        return {
-          ...e,
-          distance: res.status === "FOUND" ? `${res.distance} km` : "--",
-          estimatedTime: res.status === "FOUND" ? `${res.travelTime} min` : "--",
-          via: res.path.length > 2 ? res.path.slice(1, -1).map(id => appState.nodes.find(n => n.id === id)?.name || id).join(" → ") : "Direct Path"
-        };
-      }
-      return e;
+    setAppState(prev => ({
+      ...prev,
+      logs: [log1, log2, ...prev.logs]
+    }));
+  };
+
+  // RESILIENCE HANDLER: Block Route Road
+  const handleBlockRouteRoad = () => {
+    simEngine.triggerEvent("road_block_r17", appState, setAppState);
+  };
+
+  // RESILIENCE HANDLER: Re-Calculate Route
+  const handleRecalculateRoute = () => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const startId = getStartNodeId(currentEmergency);
+
+    const newRes = calculateRoute({
+      algorithm: selectedAlgorithm,
+      startNodeId: startId,
+      targetNodeId: targetHospitalId,
+      graph
     });
 
-    setAppState(prev => ({
-      ...prev,
-      emergencies: updatedEmergencies,
-      logs: [log1, log2, log3, ...prev.logs]
-    }));
-  };
+    const bench = runBenchmark(startId, targetHospitalId, graph);
 
-  // Auto-run routing on initial mount or emergency selection change
-  useEffect(() => {
-    const startId = getStartNodeIdForEmergency(activeSelectedEmergency);
-    handleRunRouting(selectedAlgorithm, startId, targetHospitalId);
-  }, [selectedEmergencyId, selectedAlgorithm, targetHospitalId]);
+    setRouteResult(newRes);
+    setBenchmarkResult(bench);
 
-  // Handler: Dispatch Emergency
-  const handleDispatchEmergency = (newReq) => {
-    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const nextNum = appState.emergencies.length + 104;
-    const newId = `#${nextNum}`;
-
-    const availableAmb = appState.ambulances.find(a => a.status === 'Available');
-
-    let assignedAmbCode = null;
-    let assignedDocName = null;
-    let assignedHospName = null;
-    let newStatus = "Waiting for Unit";
-
-    const logList = [
-      { id: Date.now(), time: timestamp, type: 'create', text: `Emergency ${newId} Created (${newReq.village} - ${newReq.type})` },
-      { id: Date.now() + 1, time: timestamp, type: 'info', text: `${newReq.type} requirement detected` }
-    ];
-
-    let updatedAmbulances = appState.ambulances;
-
-    if (availableAmb) {
-      assignedAmbCode = availableAmb.code;
-      assignedDocName = "Dr. Patel";
-      assignedHospName = "Hospital C";
-      newStatus = "En Route";
-
-      logList.push({
-        id: Date.now() + 2,
-        time: timestamp,
-        type: 'assign',
-        text: `${availableAmb.code} Assigned to Emergency ${newId}`
-      });
-
-      updatedAmbulances = appState.ambulances.map(a => 
-        a.id === availableAmb.id 
-          ? { ...a, status: 'En Route', from: newReq.village, to: assignedHospName, patientType: newReq.urgency, progressPct: 20, speed: 55, eta: "15 min" }
-          : a
-      );
-    } else {
-      logList.push({
-        id: Date.now() + 2,
-        time: timestamp,
-        type: 'warning',
-        text: `No ambulance available for Emergency ${newId}`
-      });
-    }
-
-    const newEmergencyObj = {
-      id: newId,
-      village: newReq.village,
-      type: newReq.type,
-      urgency: newReq.urgency,
-      requestedAt: timestamp,
-      assignedAmbulance: assignedAmbCode,
-      assignedDoctor: assignedDocName,
-      assignedHospital: assignedHospName,
-      status: newStatus,
-      distance: "--",
-      estimatedTime: "--",
-      via: "--",
-      isDemoScenario: false
+    const log1 = {
+      id: Date.now(),
+      time: timestamp,
+      type: "warning",
+      text: `Re-routing started using ${selectedAlgorithm}`
+    };
+    const log2 = {
+      id: Date.now() + 1,
+      time: timestamp,
+      type: newRes.status === "FOUND" ? "assign" : "warning",
+      text: newRes.status === "FOUND"
+        ? `Alternative route found: ${newRes.distance} km (${newRes.travelTime} min)`
+        : `No valid route available after road blockage`
     };
 
     setAppState(prev => ({
       ...prev,
-      ambulances: updatedAmbulances,
-      emergencies: [newEmergencyObj, ...prev.emergencies],
-      logs: [...logList, ...prev.logs]
+      logs: [log1, log2, ...prev.logs]
     }));
-
-    setSelectedEmergencyId(newId);
   };
 
-  // Handler: Simulation Trigger & Auto-Reroute
-  const handleTriggerSimulation = (eventType) => {
-    simEngine.triggerEvent(eventType, appState, setAppState);
-
-    // If road blockage event, re-calculate routing and log alternative path
-    if (eventType === "road_block_r17") {
-      setTimeout(() => {
-        const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-        const startId = getStartNodeIdForEmergency(activeSelectedEmergency);
-
-        const newRes = calculateRoute({
-          algorithm: selectedAlgorithm,
-          startNodeId: startId,
-          targetNodeId: targetHospitalId,
-          graph
-        });
-
-        const bench = runBenchmark(startId, targetHospitalId, graph);
-
-        setRouteResult(newRes);
-        setBenchmarkResult(bench);
-
-        const rerouteLog1 = {
-          id: Date.now(),
-          time: timestamp,
-          type: "warning",
-          text: `Recalculating route using ${selectedAlgorithm} due to road blockage`
-        };
-        const rerouteLog2 = {
-          id: Date.now() + 1,
-          time: timestamp,
-          type: newRes.status === "FOUND" ? "assign" : "warning",
-          text: newRes.status === "FOUND"
-            ? `Alternative route found: ${newRes.distance} km (${newRes.travelTime} min)`
-            : `NO ROUTE AVAILABLE after road blockage`
-        };
-
-        setAppState(prev => ({
-          ...prev,
-          logs: [rerouteLog1, rerouteLog2, ...prev.logs]
-        }));
-      }, 50);
-    }
+  // DISPATCH HANDLER: Dispatch Ambulance
+  const handleDispatchAmbulance = () => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const log = {
+      id: Date.now(),
+      time: timestamp,
+      type: "assign",
+      text: `Ambulance #02 assigned and dispatched to ${currentEmergency?.village || "Village A"}`
+    };
+    setAppState(prev => ({
+      ...prev,
+      logs: [log, ...prev.logs]
+    }));
   };
 
-  // Derived metrics
-  const assignedAmbulanceData = appState.ambulances.find(a => a.code === activeSelectedEmergency?.assignedAmbulance) || appState.ambulances[0];
-  const availableAmbulancesCount = appState.ambulances.filter(a => a.status === 'Available').length;
-  const totalAmbulancesCount = appState.ambulances.length;
-  const roadsBlockedCount = appState.roads.filter(r => r.blocked).length;
-  const hospitalsOnlineCount = appState.hospitals.length;
+  // Auto-calculate initial demo route on mount
+  useEffect(() => {
+    const startId = getStartNodeId(currentEmergency);
+    const res = calculateRoute({
+      algorithm: selectedAlgorithm,
+      startNodeId: startId,
+      targetNodeId: targetHospitalId,
+      graph
+    });
+    const bench = runBenchmark(startId, targetHospitalId, graph);
+    setRouteResult(res);
+    setBenchmarkResult(bench);
+  }, []);
 
   const isRoadR17Blocked = appState.roads.find(r => r.id === "road_r17")?.blocked;
+
+  const currentPathNodeNames = (routeResult?.path || ["node_v_a", "node_v_b", "node_v_d", "node_h_c"])
+    .map(id => appState.nodes.find(n => n.id === id)?.name || id);
 
   return (
     <div className="app-layout">
@@ -291,20 +244,67 @@ export default function App() {
       <Header systemTime="10:32 AM" />
 
       <div className="app-body">
-        {/* Main Workspace */}
-        <main className="main-content">
-          {/* Top Stat Cards */}
-          <TopStats 
-            activeEmergencies={appState.emergencies.length}
-            ambulancesAvailable={`${availableAmbulancesCount} / ${totalAmbulancesCount}`}
-            hospitalsOnline={hospitalsOnlineCount}
-            roadsBlocked={roadsBlockedCount}
+        <main className="main-content demo-flow-content">
+          {/* Section 2: 3-Step Demo Workflow Stepper */}
+          <WorkflowStepper 
+            currentStep={currentStep} 
+            onStepClick={(stepNum) => setCurrentStep(stepNum)}
           />
 
-          {/* Grid Layout: Live Map & Right Panels */}
-          <div className="dashboard-grid-row">
-            {/* Interactive Map */}
-            <div className="grid-col-map">
+          {/* Main 2-Column Grid: Step Panels & Live Map */}
+          <div className="demo-main-grid">
+            {/* Left Column: Interactive Step Panels */}
+            <div className="demo-controls-col">
+              {/* Step 1: Emergency Request */}
+              {currentStep === 1 && (
+                <Step1Emergency 
+                  villages={appState.nodes.filter(n => n.type === 'village')}
+                  onCreateEmergency={handleCreateEmergency}
+                />
+              )}
+
+              {/* Step 2: Healthcare Matching */}
+              {currentStep === 2 && (
+                <Step2HospitalMatching 
+                  currentEmergency={currentEmergency}
+                  hospitals={appState.hospitals}
+                  onSelectDestination={handleSelectDestination}
+                />
+              )}
+
+              {/* Step 3: Routing Engine */}
+              {currentStep >= 3 && (
+                <Step3RoutingControls 
+                  selectedAlgorithm={selectedAlgorithm}
+                  onAlgorithmChange={(algo) => {
+                    setSelectedAlgorithm(algo);
+                    handleRunRouting(algo);
+                  }}
+                  fromLocation={currentEmergency?.village || "Village A"}
+                  toLocation="Hospital C"
+                  onCalculateRoute={handleCalculateRoute}
+                />
+              )}
+
+              {/* Prominent Route Result Card */}
+              {routeResult && (
+                <RouteResultCard routeResult={routeResult} />
+              )}
+
+              {/* Compact Ambulance Dispatch Panel */}
+              {routeResult && routeResult.status === "FOUND" && (
+                <AmbulanceDispatchPanel 
+                  ambulanceCode="Ambulance #02"
+                  status="En Route"
+                  from={currentEmergency?.village || "Village A"}
+                  to="Hospital C"
+                  onDispatch={handleDispatchAmbulance}
+                />
+              )}
+            </div>
+
+            {/* Right Column: Main Live Map */}
+            <div className="demo-map-col">
               <Map 
                 nodes={appState.nodes} 
                 roads={appState.roads} 
@@ -313,52 +313,24 @@ export default function App() {
                 calculatedPath={routeResult?.path || []}
               />
             </div>
-
-            {/* Right Side Column */}
-            <div className="grid-col-sidebar">
-              <EmergencyPanel 
-                villages={appState.nodes.filter(n => n.type === 'village')}
-                onDispatchEmergency={handleDispatchEmergency}
-              />
-              <AmbulanceTracking 
-                ambulanceData={assignedAmbulanceData}
-                selectedEmergency={activeSelectedEmergency}
-              />
-            </div>
           </div>
 
-          {/* Bottom Cards Row 1: Active Emergency, Route Summary & Benchmarking, Assigned Resources */}
-          <div className="bottom-cards-grid">
-            <ActiveEmergencyCard 
-              emergencies={appState.emergencies}
-              selectedEmergencyId={selectedEmergencyId}
-              onSelectEmergency={(id) => setSelectedEmergencyId(id)}
-              hospitals={appState.hospitals}
-            />
-            <RouteSummary 
-              routeResult={routeResult}
-              benchmarkResult={benchmarkResult}
-              selectedAlgorithm={selectedAlgorithm}
-              onAlgorithmChange={(algo) => setSelectedAlgorithm(algo)}
-              targetHospitalId={targetHospitalId}
-              onTargetHospitalChange={(targetId) => setTargetHospitalId(targetId)}
-              hospitals={appState.hospitals}
-              onRunRouting={() => handleRunRouting()}
-            />
-            <AssignedResources 
-              emergency={activeSelectedEmergency}
-            />
-          </div>
+          {/* Middle Row: Algorithm Comparison (Dijkstra vs A*) */}
+          {benchmarkResult && (
+            <AlgorithmComparisonCard benchmarkResult={benchmarkResult} />
+          )}
 
-          {/* Bottom Cards Row 2: Recent Logs, Capacity Cards, Simulation Controls */}
-          <div className="secondary-cards-grid">
-            <Logs logs={appState.logs} />
-            <CapacityCard capacity={appState.capacity} />
-            <SimulationControls 
-              onTriggerSimulation={handleTriggerSimulation}
-              isRoadR17Blocked={isRoadR17Blocked}
-            />
-          </div>
+          {/* Bottom Row: Test Resilience (Road Block & Re-Routing Demo) */}
+          <RoadFailureDemo 
+            currentPathNames={currentPathNodeNames}
+            isRoadBlocked={isRoadR17Blocked}
+            onBlockRoad={handleBlockRouteRoad}
+            onRecalculateRoute={handleRecalculateRoute}
+            hasAlternativeRoute={routeResult?.status === "FOUND"}
+          />
+
+          {/* Bottom Collapsible Decision Log Stream */}
+          <DecisionLogCollapsible logs={appState.logs} />
         </main>
       </div>
     </div>

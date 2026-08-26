@@ -139,75 +139,6 @@ body {
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.simulation-time {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.notification-btn {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background-color: #F1F5F9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.notification-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  background-color: var(--danger-red);
-  color: white;
-  border-radius: 50%;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid white;
-}
-
-.user-profile {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.avatar-circle {
-  width: 34px;
-  height: 34px;
-  background-color: var(--primary-blue);
-  color: white;
-  border-radius: 50%;
-  font-weight: 700;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.user-name {
-  font-size: 14px;
-  font-weight: 600;
-}
-
 /* Main Content Workspace */
 .main-content {
   flex: 1;
@@ -216,100 +147,119 @@ body {
   flex-direction: column;
   gap: 20px;
   width: 100%;
-  max-width: 1800px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
-/* Top Stats Cards Grid */
-.top-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-}
-
-.stat-card {
-  background-color: var(--bg-card);
+/* Stepper Progress Bar */
+.stepper-card {
+  background-color: #FFFFFF;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-card);
-  padding: 18px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  padding: 14px 20px;
   box-shadow: var(--shadow-sm);
 }
 
-.stat-info {
+.stepper-container {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.stat-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.stepper-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background-color: #F8FAFC;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  flex: 1;
 }
 
-.stat-value {
-  font-size: 24px;
-  font-weight: 800;
-  margin: 4px 0;
+.stepper-item.active {
+  background-color: var(--primary-blue-light);
+  border-color: var(--primary-blue);
 }
 
-.stat-card.danger .stat-value { color: var(--danger-red); }
-.stat-card.success .stat-value { color: var(--success-green); }
-.stat-card.primary .stat-value { color: var(--primary-blue); }
-.stat-card.purple .stat-value { color: var(--purple-accent); }
-
-.stat-link {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: var(--text-muted);
+.stepper-item.completed {
+  background-color: var(--success-green-light);
+  border-color: var(--success-green);
   cursor: pointer;
-  padding: 0;
-  text-align: left;
-  font-weight: 500;
 }
 
-.stat-link:hover {
-  text-decoration: underline;
-}
-
-.stat-icon-wrapper {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+.step-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #CBD5E1;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.stat-icon-wrapper.danger { background-color: var(--danger-red-light); color: var(--danger-red); }
-.stat-icon-wrapper.success { background-color: var(--success-green-light); color: var(--success-green); }
-.stat-icon-wrapper.primary { background-color: var(--primary-blue-light); color: var(--primary-blue); }
-.stat-icon-wrapper.purple { background-color: var(--purple-accent-light); color: var(--purple-accent); }
+.stepper-item.active .step-badge {
+  background-color: var(--primary-blue);
+}
 
-/* Dashboard Grid Layouts */
-.dashboard-grid-row {
+.stepper-item.completed .step-badge {
+  background-color: var(--success-green);
+}
+
+.step-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-number-text {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.stepper-connector {
+  height: 2px;
+  width: 30px;
+  background-color: var(--border-color);
+  margin: 0 10px;
+  flex-shrink: 0;
+}
+
+.stepper-connector.completed {
+  background-color: var(--success-green);
+}
+
+/* Demo Main Grid */
+.demo-main-grid {
   display: grid;
-  grid-template-columns: 2.2fr 1fr;
+  grid-template-columns: 1fr 1.6fr;
   gap: 20px;
 }
 
-.grid-col-map {
-  display: flex;
-}
-
-.grid-col-sidebar {
+.demo-controls-col {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* Card Component Base */
+.demo-map-col {
+  display: flex;
+}
+
+/* Card Base */
 .card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -324,7 +274,6 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 14px;
 }
 
 .card-header-row {
@@ -334,9 +283,252 @@ body {
   margin-bottom: 14px;
 }
 
-.card-header-row .card-title {
-  margin-bottom: 0;
+/* Step 2 Healthcare Matching */
+.emergency-summary-banner {
+  background-color: #F8FAFC;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-bottom: 12px;
 }
+
+.hospital-matching-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.hospital-match-item {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hospital-match-item.unavailable-card {
+  background-color: #FFF5F5;
+  border-color: #FCA5A5;
+}
+
+.hospital-match-item.available-card {
+  background-color: #F0FDF4;
+  border-color: #86EFAC;
+}
+
+.hospital-match-item.highlighted-match {
+  border: 2px solid var(--success-green);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+}
+
+.hosp-match-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.hosp-match-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Step 3 Routing Controls */
+.route-origin-dest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #F8FAFC;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.banner-point {
+  display: flex;
+  gap: 6px;
+}
+
+.banner-arrow {
+  color: var(--primary-blue);
+  font-weight: 700;
+}
+
+/* Route Result Card */
+.route-result-card.result-success {
+  border: 2px solid #86EFAC;
+  background-color: #F0FDF4;
+}
+
+.route-result-card.result-no-route {
+  border: 2px solid #FCA5A5;
+  background-color: #FFF5F5;
+}
+
+.result-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.metric-box {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-box.span-full {
+  grid-column: span 2;
+}
+
+.metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.metric-val {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* Benchmark Card */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.comparison-table th, .comparison-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.comparison-table th {
+  color: var(--text-muted);
+  font-weight: 600;
+  background-color: #F8FAFC;
+}
+
+.comparison-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary-blue-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--primary-blue);
+  font-weight: 500;
+}
+
+/* Road Failure Demo */
+.road-failure-card {
+  border: 1px dashed var(--warning-amber);
+  background-color: #FFFBEE;
+}
+
+.current-route-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 14px;
+}
+
+.route-display-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.route-path-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.path-chip {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip-arrow {
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.road-blocked-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--danger-red-light);
+  color: var(--danger-red);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.alt-route-found-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--success-green-light);
+  color: var(--success-green);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.resilience-actions {
+  display: flex;
+  gap: 14px;
+}
+
+/* Ambulance Dispatch Panel */
+.amb-dispatch-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.dispatch-label { color: var(--text-muted); }
+
+/* Decision Log */
+.decision-log-collapsible .log-item {
+  padding: 4px 0;
+  border-bottom: 1px dashed #F1F5F9;
+}
+
+.cursor-pointer { cursor: pointer; }
+.log-toggle-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); }
 
 /* Map Component Styles */
 .map-card {
@@ -349,7 +541,7 @@ body {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  min-height: 520px;
+  min-height: 540px;
   box-shadow: var(--shadow-sm);
 }
 
@@ -409,9 +601,9 @@ body {
   pointer-events: none;
 }
 
-.road-line-normal { stroke: #CBD5E1; stroke-width: 1.5; }
-.road-line-selected { stroke: var(--primary-blue); stroke-width: 2.8; stroke-linecap: round; }
-.road-line-blocked { stroke: var(--danger-red); stroke-width: 2; stroke-dasharray: 3,3; }
+.road-line-normal { stroke: #CBD5E1; stroke-width: 1.8; }
+.road-line-selected { stroke: var(--primary-blue); stroke-width: 3.2; stroke-linecap: round; }
+.road-line-blocked { stroke: var(--danger-red); stroke-width: 2.2; stroke-dasharray: 3,3; }
 
 .map-time-label {
   position: absolute;
@@ -426,6 +618,12 @@ body {
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   pointer-events: none;
   white-space: nowrap;
+}
+
+.map-time-label.active-path-label {
+  background-color: var(--primary-blue);
+  color: white;
+  border-color: var(--primary-blue);
 }
 
 .node-badge {
@@ -459,7 +657,7 @@ body {
 }
 
 .node-badge.in-path-node {
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
 }
 
 .node-badge.village { color: var(--primary-blue); border-color: #BFDBFE; }
@@ -597,10 +795,28 @@ body {
   border-color: var(--primary-blue);
 }
 
-.routing-controls-group {
+.select-with-status {
+  position: relative;
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  align-items: center;
+}
+
+.urgency-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: absolute;
+  left: 12px;
+  z-index: 2;
+}
+
+.urgency-dot.critical { background-color: var(--danger-red); }
+.urgency-dot.high { background-color: var(--warning-amber); }
+.urgency-dot.medium { background-color: var(--primary-blue); }
+.urgency-dot.low { background-color: var(--success-green); }
+
+.select-with-status .form-select {
+  padding-left: 28px;
 }
 
 /* Button Components */
@@ -636,271 +852,18 @@ body {
   background-color: #B45309;
 }
 
+.btn-danger {
+  background-color: var(--danger-red);
+  color: white;
+}
+
 .btn-full {
   width: 100%;
 }
 
 .mb-3 { margin-bottom: 12px; }
-
-/* Ambulance Tracking Card */
-.amb-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.amb-code {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.amb-title-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.amb-avatar-icon {
-  width: 36px;
-  height: 36px;
-  background-color: var(--primary-blue-light);
-  color: var(--primary-blue);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.amb-details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
-  font-size: 13px;
-  margin-bottom: 14px;
-}
-
-.detail-label {
-  color: var(--text-muted);
-}
-
-.detail-value {
-  font-weight: 500;
-  margin-left: 4px;
-}
-
-.amb-progress-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.progress-label-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.progress-bar-bg {
-  height: 8px;
-  background-color: #E2E8F0;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  background-color: var(--primary-blue);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-/* Badges */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.badge-success { background-color: var(--success-green-light); color: var(--success-green); }
-.badge-danger { background-color: var(--danger-red-light); color: var(--danger-red); }
-.badge-purple { background-color: var(--purple-accent-light); color: var(--purple-accent); }
-
-/* Bottom Row Grid Cards */
-.bottom-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-.emergency-info-grid, .summary-info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  margin-bottom: 14px;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-}
-
-.info-label {
-  color: var(--text-muted);
-}
-
-.no-route-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--danger-red-light);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: var(--danger-red);
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.benchmark-box {
-  background-color: #F8FAFC;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin-top: 10px;
-}
-
-.benchmark-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.benchmark-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-main);
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.benchmark-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11px;
-  text-align: left;
-}
-
-.benchmark-table th, .benchmark-table td {
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.benchmark-table th {
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-/* Secondary Cards Grid */
-.secondary-cards-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 20px;
-}
-
-/* Recent Logs */
-.logs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.log-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.log-time {
-  color: var(--text-muted);
-  font-weight: 500;
-  width: 65px;
-  flex-shrink: 0;
-}
-
-.log-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dot-blue { background-color: var(--primary-blue); }
-.dot-green { background-color: var(--success-green); }
-.dot-red { background-color: var(--danger-red); }
-.dot-purple { background-color: var(--purple-accent); }
-
-.log-text {
-  color: var(--text-main);
-  font-weight: 500;
-}
-
-.text-link {
-  background: none;
-  border: none;
-  font-size: 12px;
-  color: var(--primary-blue);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.text-xs { font-size: 11px; }
-
-/* Capacity Cards */
-.capacity-items-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.capacity-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.capacity-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-}
-
-.capacity-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
-}
-
-.sim-form-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.sim-btn {
-  height: 40px;
-  margin-bottom: 14px;
-}
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
 
 /* Helper Utility Classes */
 .font-semibold { font-weight: 600; }
@@ -918,36 +881,28 @@ body {
 .inline-flex { display: inline-flex; }
 .items-center { align-items: center; }
 .gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
 .span-2 { grid-column: span 2; }
 .flex-1 { flex: 1; }
 .flex-shrink-0 { flex-shrink: 0; }
 
 /* Responsive Media Queries */
-@media (max-width: 1200px) {
-  .dashboard-grid-row {
+@media (max-width: 1100px) {
+  .demo-main-grid {
     grid-template-columns: 1fr;
   }
-  
-  .secondary-cards-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  
-  .secondary-cards-grid .simulation-controls-card {
-    grid-column: span 2;
-  }
-}
 
-@media (max-width: 992px) {
-  .top-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stepper-container {
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .bottom-cards-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stepper-connector {
+    display: none;
   }
 
-  .bottom-cards-grid .assigned-resources-card {
-    grid-column: span 2;
+  .resilience-actions {
+    flex-direction: column;
   }
 }
 
@@ -961,41 +916,16 @@ body {
     padding: 10px 16px;
   }
 
-  .top-stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .bottom-cards-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .bottom-cards-grid .assigned-resources-card {
-    grid-column: span 1;
-  }
-
-  .secondary-cards-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .secondary-cards-grid .simulation-controls-card {
-    grid-column: span 1;
-  }
-
   .map-card {
     min-height: 420px;
     padding: 14px;
   }
 
-  .map-legend {
-    justify-content: flex-start;
+  .result-metrics-grid {
+    grid-template-columns: 1fr;
   }
 
-  .sim-form-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .sim-btn {
-    margin-bottom: 0;
+  .result-metrics-grid .metric-box.span-full {
+    grid-column: span 1;
   }
 }
