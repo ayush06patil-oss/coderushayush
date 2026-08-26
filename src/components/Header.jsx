@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, Bell, ChevronDown, Radio } from 'lucide-react';
+import { Activity, Bell, ChevronDown } from 'lucide-react';
 
 export default function Header({ systemTime = "10:32 AM" }) {
   return (
@@ -7,7 +7,7 @@ export default function Header({ systemTime = "10:32 AM" }) {
       {/* Left Branding */}
       <div className="header-brand">
         <div className="logo-icon-bg">
-          <Activity className="logo-icon" size={24} />
+          <Activity className="logo-icon" size={20} />
         </div>
         <div className="brand-text">
           <h1 className="brand-title">Rural Healthcare</h1>
@@ -15,7 +15,7 @@ export default function Header({ systemTime = "10:32 AM" }) {
         </div>
       </div>
 
-      {/* System Status Indicator */}
+      {/* Center System Status */}
       <div className="header-status">
         <span className="status-pill online">
           <span className="status-dot"></span>
@@ -23,21 +23,21 @@ export default function Header({ systemTime = "10:32 AM" }) {
         </span>
       </div>
 
-      {/* Right Controls / User Profile */}
+      {/* Right Action Widgets */}
       <div className="header-actions">
         <div className="simulation-time">
           <span>{systemTime}</span>
         </div>
 
-        <div className="notification-btn">
-          <Bell size={20} />
+        <div className="notification-btn" title="System Notifications">
+          <Bell size={18} />
           <span className="notification-badge">3</span>
         </div>
 
         <div className="user-profile">
           <div className="avatar-circle">AD</div>
           <span className="user-name">Admin</span>
-          <ChevronDown size={16} />
+          <ChevronDown size={14} />
         </div>
       </div>
     </header>

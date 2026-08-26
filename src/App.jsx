@@ -5,9 +5,10 @@ import Step1Emergency from './components/Step1Emergency';
 import Step2HospitalMatching from './components/Step2HospitalMatching';
 import Step3RoutingControls from './components/Step3RoutingControls';
 import RouteResultCard from './components/RouteResultCard';
+import AmbulanceDispatchPanel from './components/AmbulanceDispatchPanel';
+import LiveResourcesCard from './components/LiveResourcesCard';
 import AlgorithmComparisonCard from './components/AlgorithmComparisonCard';
 import RoadFailureDemo from './components/RoadFailureDemo';
-import AmbulanceDispatchPanel from './components/AmbulanceDispatchPanel';
 import DecisionLogCollapsible from './components/DecisionLogCollapsible';
 import Map from './components/Map';
 
@@ -63,7 +64,7 @@ export default function App() {
     return new SimulationEngine(graph);
   }, [graph]);
 
-  // Helper: Get node ID for emergency village
+  // Helper: Get start node ID
   const getStartNodeId = (emergency) => {
     const villageName = emergency?.village || "Village A";
     const foundNode = appState.nodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
@@ -109,7 +110,7 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "assign",
-      text: `${hospitalNode?.name || "Hospital C"} selected as destination (${currentEmergency?.type} available)`
+      text: `${hospitalNode?.name || "Hospital C"} selected — cardiologist available`
     };
 
     setAppState(prev => ({
@@ -126,7 +127,7 @@ export default function App() {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
 
-    // Run primary algorithm calculation
+    // Run algorithm calculation
     const res = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
@@ -134,7 +135,7 @@ export default function App() {
       graph
     });
 
-    // Run dual benchmark execution
+    // Run dual benchmark
     const bench = runBenchmark(startId, targetHospitalId, graph);
 
     setRouteResult(res);
@@ -144,14 +145,14 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "route",
-      text: `${res.algorithm} routing started for ${currentEmergency?.id || "#101"}`
+      text: `${res.algorithm} routing started`
     };
     const log2 = {
       id: Date.now() + 1,
       time: timestamp,
       type: res.status === "FOUND" ? "assign" : "warning",
       text: res.status === "FOUND" 
-        ? `Route found: ${res.distance} km (${res.travelTime} min) | Visited nodes: ${res.visitedNodes}`
+        ? `Optimal route found — ${res.distance} km (${res.travelTime} min)`
         : `No valid route available`
     };
 
@@ -159,11 +160,27 @@ export default function App() {
       ...prev,
       logs: [log1, log2, ...prev.logs]
     }));
+
+    // Automatically advance Step 3 -> Step 4 (Ambulance Dispatch)
+    setCurrentStep(4);
   };
 
   // RESILIENCE HANDLER: Block Route Road
   const handleBlockRouteRoad = () => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     simEngine.triggerEvent("road_block_r17", appState, setAppState);
+
+    const log = {
+      id: Date.now(),
+      time: timestamp,
+      type: "warning",
+      text: "Road R17 blocked on active route"
+    };
+
+    setAppState(prev => ({
+      ...prev,
+      logs: [log, ...prev.logs]
+    }));
   };
 
   // RESILIENCE HANDLER: Re-Calculate Route
@@ -211,7 +228,7 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "assign",
-      text: `Ambulance #02 assigned and dispatched to ${currentEmergency?.village || "Village A"}`
+      text: `Ambulance #02 dispatched to ${currentEmergency?.village || "Village A"}`
     };
     setAppState(prev => ({
       ...prev,
@@ -240,20 +257,20 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Header Bar */}
+      {/* 1. Header */}
       <Header systemTime="10:32 AM" />
 
       <div className="app-body">
         <main className="main-content demo-flow-content">
-          {/* Section 2: 3-Step Demo Workflow Stepper */}
+          {/* 2. 4-Step Workflow Stepper */}
           <WorkflowStepper 
             currentStep={currentStep} 
             onStepClick={(stepNum) => setCurrentStep(stepNum)}
           />
 
-          {/* Main 2-Column Grid: Step Panels & Live Map */}
+          {/* 3. Main 2-Column Grid: Step Panels & Live Map */}
           <div className="demo-main-grid">
-            {/* Left Column: Interactive Step Panels */}
+            {/* Left Column: Active Step Controls */}
             <div className="demo-controls-col">
               {/* Step 1: Emergency Request */}
               {currentStep === 1 && (
@@ -272,38 +289,36 @@ export default function App() {
                 />
               )}
 
-              {/* Step 3: Routing Engine */}
-              {currentStep >= 3 && (
+              {/* Step 3: Routing Engine Controls */}
+              {currentStep === 3 && (
                 <Step3RoutingControls 
                   selectedAlgorithm={selectedAlgorithm}
-                  onAlgorithmChange={(algo) => {
-                    setSelectedAlgorithm(algo);
-                    handleRunRouting(algo);
-                  }}
+                  onAlgorithmChange={(algo) => setSelectedAlgorithm(algo)}
                   fromLocation={currentEmergency?.village || "Village A"}
                   toLocation="Hospital C"
                   onCalculateRoute={handleCalculateRoute}
                 />
               )}
 
-              {/* Prominent Route Result Card */}
-              {routeResult && (
+              {/* Step 4 / Route Found Summary */}
+              {currentStep >= 3 && routeResult && (
                 <RouteResultCard routeResult={routeResult} />
               )}
 
-              {/* Compact Ambulance Dispatch Panel */}
-              {routeResult && routeResult.status === "FOUND" && (
+              {/* Step 4: Ambulance Dispatch Panel */}
+              {currentStep >= 4 && (
                 <AmbulanceDispatchPanel 
                   ambulanceCode="Ambulance #02"
-                  status="En Route"
                   from={currentEmergency?.village || "Village A"}
                   to="Hospital C"
+                  distance={routeResult?.distance ? `${routeResult.distance} km` : "25.4 km"}
+                  eta={routeResult?.travelTime ? `${routeResult.travelTime} min` : "15 min"}
                   onDispatch={handleDispatchAmbulance}
                 />
               )}
             </div>
 
-            {/* Right Column: Main Live Map */}
+            {/* Right Column: Live Map Canvas */}
             <div className="demo-map-col">
               <Map 
                 nodes={appState.nodes} 
@@ -315,12 +330,21 @@ export default function App() {
             </div>
           </div>
 
-          {/* Middle Row: Algorithm Comparison (Dijkstra vs A*) */}
+          {/* 4. Live Resource Status Summary Card */}
+          <LiveResourcesCard 
+            ambulancesAvailableStr="4 / 8"
+            hospitalsOnline={appState.hospitals.length}
+            bedsAvailable={72}
+            bedsTotal={100}
+            medicinePct={82}
+          />
+
+          {/* 5. Algorithm Comparison Card (Dijkstra vs A*) */}
           {benchmarkResult && (
             <AlgorithmComparisonCard benchmarkResult={benchmarkResult} />
           )}
 
-          {/* Bottom Row: Test Resilience (Road Block & Re-Routing Demo) */}
+          {/* 6. Optional Test Routing Resilience (Road Block & Re-Routing Demo) */}
           <RoadFailureDemo 
             currentPathNames={currentPathNodeNames}
             isRoadBlocked={isRoadR17Blocked}
@@ -329,7 +353,7 @@ export default function App() {
             hasAlternativeRoute={routeResult?.status === "FOUND"}
           />
 
-          {/* Bottom Collapsible Decision Log Stream */}
+          {/* 7. Collapsible Decision Log Stream */}
           <DecisionLogCollapsible logs={appState.logs} />
         </main>
       </div>

@@ -1,11 +1,12 @@
 import React from 'react';
-import { AlertCircle, Building2, Navigation } from 'lucide-react';
+import { AlertCircle, Building2, Navigation, Truck } from 'lucide-react';
 
 export default function WorkflowStepper({ currentStep, onStepClick }) {
   const steps = [
     { number: 1, label: 'Emergency', sublabel: 'Create Request', icon: AlertCircle },
     { number: 2, label: 'Select Hospital', sublabel: 'Specialist Match', icon: Building2 },
     { number: 3, label: 'Calculate Route', sublabel: 'Dijkstra / A*', icon: Navigation },
+    { number: 4, label: 'Dispatch Ambulance', sublabel: 'Fleet Deployment', icon: Truck },
   ];
 
   return (
@@ -27,9 +28,11 @@ export default function WorkflowStepper({ currentStep, onStepClick }) {
                 </div>
                 <div className="step-info">
                   <span className="step-number-text">STEP {step.number}</span>
-                  <span className="step-label">{step.label}</span>
+                  <span className="step-label">
+                    {isCompleted && step.number === 3 ? 'Route Calculated' : step.label}
+                  </span>
                 </div>
-                <Icon size={18} className="step-icon" />
+                <Icon size={16} className="step-icon" />
               </div>
 
               {index < steps.length - 1 && (
