@@ -10,8 +10,7 @@ import {
   X,
   CheckCircle2,
   XCircle,
-  Activity,
-  Maximize2
+  Activity
 } from 'lucide-react';
 
 export default function Map({ 
@@ -29,15 +28,19 @@ export default function Map({
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePopupNode, setActivePopupNode] = useState(null);
 
-  // Fast Map lookup dictionary for sub-millisecond node coordinate retrieval
-  const nodeMap = useMemo(() => {
-    const map = new Map();
-    nodes.forEach(n => map.set(n.id, n));
-    return map;
+  // Fast lookup dictionary using plain JS Object (to avoid shadowing window.Map constructor)
+  const nodeDict = useMemo(() => {
+    const dict = {};
+    if (Array.isArray(nodes)) {
+      nodes.forEach(n => {
+        if (n && n.id) dict[n.id] = n;
+      });
+    }
+    return dict;
   }, [nodes]);
 
   const getNodePos = (nodeId) => {
-    const node = nodeMap.get(nodeId);
+    const node = nodeDict[nodeId];
     return node ? { x: node.x, y: node.y } : { x: 50, y: 50 };
   };
 
@@ -57,25 +60,24 @@ export default function Map({
   // Filter nodes for map display
   const displayNodes = useMemo(() => {
     if (networkMode === "50k") {
-      // In 50k mode, display key demo hospitals, key villages, and nodes in active calculated path
-      const pathNodeSet = new Set(calculatedPath);
-      const sampleHospitals = hospitals.slice(0, 15);
-      const sampleVillages = villages.slice(0, 15);
+      const pathNodeSet = new Set(calculatedPath || []);
+      const sampleHospitals = Array.isArray(hospitals) ? hospitals.slice(0, 15) : [];
+      const sampleVillages = Array.isArray(villages) ? villages.slice(0, 15) : [];
       const combined = [...sampleHospitals, ...sampleVillages];
       
-      const filtered = nodes.filter(n => pathNodeSet.has(n.id) || combined.some(c => c.nearestNodeId === n.id || c.id === n.id));
+      const filtered = (nodes || []).filter(n => n && (pathNodeSet.has(n.id) || combined.some(c => c && (c.nearestNodeId === n.id || c.id === n.id))));
       return filtered.slice(0, 80); // Cap displayed DOM badges for 60 FPS performance
     }
 
     // Standard mode: primary demo nodes
     const primaryScenarioNodeIds = ["node_v_a", "node_v_b", "node_v_d", "node_h_b", "node_h_c", "node_hc_1"];
-    return nodes.filter(n => primaryScenarioNodeIds.includes(n.id) || calculatedPath.includes(n.id));
+    return (nodes || []).filter(n => n && (primaryScenarioNodeIds.includes(n.id) || (calculatedPath || []).includes(n.id)));
   }, [networkMode, nodes, hospitals, villages, calculatedPath]);
 
   // Sample road edges for SVG network mesh background
   const displayRoads = useMemo(() => {
+    if (!Array.isArray(roads)) return [];
     if (networkMode === "50k") {
-      // Sample subset of background road mesh + ALL edges in calculatedPath
       const pathEdgeSet = new Set();
       if (calculatedPath && calculatedPath.length >= 2) {
         for (let i = 0; i < calculatedPath.length - 1; i++) {
@@ -85,7 +87,7 @@ export default function Map({
       }
 
       const sampleStep = Math.max(1, Math.floor(roads.length / 400));
-      return roads.filter((r, idx) => idx % sampleStep === 0 || pathEdgeSet.has(`${r.from}_${r.to}`));
+      return roads.filter((r, idx) => r && (idx % sampleStep === 0 || pathEdgeSet.has(`${r.from}_${r.to}`)));
     }
     return roads;
   }, [networkMode, roads, calculatedPath]);
@@ -96,7 +98,7 @@ export default function Map({
   };
 
   // Fallback initial position for ambulance marker if ambulancePos not yet calculated
-  const startNodePos = calculatedPath.length > 0 ? getNodePos(calculatedPath[0]) : { x: 51, y: 56 };
+  const startNodePos = calculatedPath && calculatedPath.length > 0 ? getNodePos(calculatedPath[0]) : { x: 51, y: 56 };
   const currentAmbX = ambulancePos ? ambulancePos.x : startNodePos.x;
   const currentAmbY = ambulancePos ? ambulancePos.y : startNodePos.y;
 
@@ -127,6 +129,7 @@ export default function Map({
         {/* SVG Network Mesh Canvas */}
         <svg className="map-svg-canvas" viewBox="0 0 100 100" preserveAspectRatio="none">
           {displayRoads.map((road) => {
+            if (!road) return null;
             const from = getNodePos(road.from);
             const to = getNodePos(road.to);
             if (!from.x || !to.x) return null;
@@ -138,7 +141,7 @@ export default function Map({
             else if (isPathEdge) strokeClass = "road-line-selected";
 
             return (
-              <g key={road.id}>
+              <g key={road.id || `road_${Math.random()}`}>
                 <line
                   x1={from.x}
                   y1={from.y}
@@ -161,6 +164,7 @@ export default function Map({
 
         {/* Travel Time Labels for Active Route Edges */}
         {displayRoads.map((road) => {
+          if (!road) return null;
           const isPathEdge = isEdgeInCalculatedPath(road);
           if (!isPathEdge) return null;
 
@@ -184,6 +188,7 @@ export default function Map({
 
         {/* HTML Node Badges */}
         {displayNodes.map((node) => {
+          if (!node) return null;
           let nodeIcon = <Home size={14} />;
           let nodeClass = "node-badge village";
 
@@ -196,7 +201,7 @@ export default function Map({
           }
 
           const isSelected = selectedNodeId === node.id;
-          const isInPath = calculatedPath.includes(node.id);
+          const isInPath = (calculatedPath || []).includes(node.id);
 
           return (
             <div
