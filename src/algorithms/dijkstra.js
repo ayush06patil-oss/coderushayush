@@ -1,4 +1,4 @@
-import { MinHeap } from './minHeap';
+import { MinHeap } from './minHeap.js';
 
 /**
  * Dijkstra Shortest Path Algorithm

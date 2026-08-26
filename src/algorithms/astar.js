@@ -1,4 +1,4 @@
-import { MinHeap } from './minHeap';
+import { MinHeap } from './minHeap.js';
 
 /**
  * Admissible Straight-Line Distance Heuristic h(n)
