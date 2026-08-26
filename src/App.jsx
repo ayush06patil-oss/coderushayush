@@ -543,11 +543,14 @@ export default function App() {
               )}
             </div>
 
-            {/* Right Column: Live Map Canvas with Dynamic DOM-Light Ambulance Positioning */}
+            {/* Right Column: Live Map Canvas with 50,000-Node Renderer */}
             <div className="demo-map-col">
               <Map 
-                nodes={appState.nodes} 
-                roads={appState.roads} 
+                nodes={activeNodes} 
+                roads={activeRoads} 
+                hospitals={activeHospitals}
+                villages={activeVillages}
+                networkMode={networkMode}
                 selectedNodeId={selectedNodeId}
                 onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
                 calculatedPath={routeResult?.path || []}
