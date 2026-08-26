@@ -1004,7 +1004,7 @@ body {
 .cursor-pointer { cursor: pointer; }
 .log-toggle-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); }
 
-/* Map Component Styles — Sticky & Viewport-Constrained */
+/* Map Component Styles — High-Fidelity GIS Canvas & Dark/Light Modes */
 .map-card {
   background-color: #F8FAFC;
   border: 1px solid var(--border-color);
@@ -1019,6 +1019,23 @@ body {
   max-height: 650px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.map-card.gis-dark {
+  background-color: #0F172A;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
+.map-card.gis-dark .map-title {
+  color: #F8FAFC;
+}
+
+.map-card.gis-dark .map-legend {
+  background-color: #1E293B;
+  border-color: #334155;
+  color: #CBD5E1;
 }
 
 .map-header {
@@ -1043,6 +1060,11 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
+.map-card.gis-dark .map-controls {
+  background-color: #1E293B;
+  border-color: #334155;
+}
+
 .map-ctrl-btn {
   width: 26px;
   height: 26px;
@@ -1056,8 +1078,17 @@ body {
   cursor: pointer;
 }
 
+.map-card.gis-dark .map-ctrl-btn {
+  background-color: #1E293B;
+  color: #F8FAFC;
+}
+
 .map-ctrl-btn:hover {
   background-color: #F1F5F9;
+}
+
+.map-card.gis-dark .map-ctrl-btn:hover {
+  background-color: #334155;
 }
 
 .map-viewport {
@@ -1079,7 +1110,7 @@ body {
 
 .active-route-polyline {
   stroke-dasharray: none;
-  filter: drop-shadow(0px 2px 4px rgba(37, 99, 235, 0.3));
+  filter: drop-shadow(0px 2px 6px rgba(37, 99, 235, 0.45));
 }
 
 .midpoint-time-tag {
@@ -1095,6 +1126,31 @@ body {
   z-index: 15;
   pointer-events: none;
   white-space: nowrap;
+}
+
+/* Sleek GIS Map Pins */
+.gis-hospital-icon-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid var(--danger-red);
+  color: var(--danger-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  cursor: pointer;
+  z-index: 6;
+  transition: transform 0.15s ease;
+}
+
+.gis-hospital-icon-pin:hover {
+  transform: translate(-50%, -60%) scale(1.25);
+  z-index: 15;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
 }
 
 .node-badge {
@@ -1192,6 +1248,12 @@ body {
   font-size: 12px;
 }
 
+.map-card.gis-dark .map-popup-card {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F8FAFC;
+}
+
 .popup-header {
   display: flex;
   align-items: center;
@@ -1206,6 +1268,21 @@ body {
   border: none;
   cursor: pointer;
   color: var(--text-muted);
+}
+
+/* Dynamic GIS Scale Bar */
+.gis-scale-bar {
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.scale-line-bar {
+  width: 24px;
+  height: 2px;
+  background-color: var(--text-muted);
 }
 
 .map-legend {

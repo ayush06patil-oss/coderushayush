@@ -11,7 +11,9 @@ import {
   CheckCircle2,
   XCircle,
   Activity,
-  ShieldCheck
+  ShieldCheck,
+  Compass,
+  MapPin
 } from 'lucide-react';
 
 export default function Map({ 
@@ -29,6 +31,7 @@ export default function Map({
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activePopupNode, setActivePopupNode] = useState(null);
+  const [mapTheme, setMapTheme] = useState("gis-light"); // "gis-light" or "gis-dark"
 
   // Fast lookup dictionary using plain JS Object
   const nodeDict = useMemo(() => {
@@ -69,7 +72,7 @@ export default function Map({
     return waypoints;
   }, [calculatedPath, nodeDict]);
 
-  // Midpoint coordinate of active route
+  // Midpoint coordinate of active route for clean travel time tag
   const routeMidpointPos = useMemo(() => {
     if (!calculatedPath || calculatedPath.length < 2) return null;
     const midIndex = Math.floor(calculatedPath.length / 2);
@@ -93,7 +96,67 @@ export default function Map({
     return totalTime > 0 ? totalTime : 25;
   }, [calculatedPath, roads]);
 
-  // Key Facility Badges (HTML Pill Overlay) — Origin, Selected Target Hospital, and Key Facilities
+  // Generate Continuous Road Network Grid Corridors (Highways, State Highways, Local Thoroughfares)
+  const continuousRoadCorridors = useMemo(() => {
+    if (!Array.isArray(roads)) return [];
+
+    if (networkMode === "50k") {
+      // Group roads into continuous road corridors by type and coordinate grid lines
+      const corridors = [];
+      const COLS = 250;
+      const ROWS = 200;
+      const step = 8; // Render continuous thoroughfare grid lines every 8th row/col for clean GIS aesthetic
+
+      // Horizontal thoroughfare lines
+      for (let r = 0; r < ROWS; r += step) {
+        const y = parseFloat(((r / (ROWS - 1)) * 90 + 5).toFixed(2));
+        const isHighway = r % 24 === 0;
+        const isStateHwy = r % 16 === 0;
+        corridors.push({
+          id: `h_corridor_${r}`,
+          type: isHighway ? "Highway" : isStateHwy ? "State Highway" : "District Road",
+          x1: 5,
+          y1: y,
+          x2: 95,
+          y2: y
+        });
+      }
+
+      // Vertical thoroughfare lines
+      for (let c = 0; c < COLS; c += step) {
+        const x = parseFloat(((c / (COLS - 1)) * 90 + 5).toFixed(2));
+        const isHighway = c % 24 === 0;
+        const isStateHwy = c % 16 === 0;
+        corridors.push({
+          id: `v_corridor_${c}`,
+          type: isHighway ? "Highway" : isStateHwy ? "State Highway" : "District Road",
+          x1: x,
+          y1: 5,
+          x2: x,
+          y2: 95
+        });
+      }
+
+      // Diagonal arterial thoroughfares
+      corridors.push({ id: "diag_1", type: "Highway", x1: 5, y1: 5, x2: 95, y2: 95 });
+      corridors.push({ id: "diag_2", type: "State Highway", x1: 95, y1: 5, x2: 5, y2: 95 });
+
+      return corridors;
+    }
+
+    // Standard Mode: Render standard roads
+    return roads.map(r => ({
+      id: r.id,
+      type: r.roadType || "District Road",
+      blocked: r.blocked,
+      x1: getNodePos(r.from).x,
+      y1: getNodePos(r.from).y,
+      x2: getNodePos(r.to).x,
+      y2: getNodePos(r.to).y
+    }));
+  }, [networkMode, roads, nodeDict]);
+
+  // Key Facility Badges & Sleek GIS Map Pins
   const displayBadges = useMemo(() => {
     if (!Array.isArray(nodes)) return [];
 
@@ -125,8 +188,8 @@ export default function Map({
       }
     }
 
-    // 3. Render Top Hospitals in viewport for interactive click routing
-    const displayHospitals = networkMode === "50k" ? (hospitals || []).slice(0, 12) : (hospitals || []).slice(0, 5);
+    // 3. Top Demo Hospitals & Key Villages as sleek GIS map pins
+    const displayHospitals = networkMode === "50k" ? (hospitals || []).slice(0, 10) : (hospitals || []).slice(0, 5);
     displayHospitals.forEach(h => {
       const targetId = h.nearestNodeId || h.id;
       const node = nodeDict[targetId] || h;
@@ -137,7 +200,8 @@ export default function Map({
           name: h.name,
           badgeLabel: h.name,
           type: "hospital",
-          hospitalObj: h
+          hospitalObj: h,
+          isPinOnly: true // Sleek circular pin icon instead of heavy white pill!
         });
       }
     });
@@ -145,17 +209,9 @@ export default function Map({
     return keyBadges;
   }, [networkMode, nodes, hospitals, calculatedPath, nodeDict]);
 
-  // Background road network mesh with GIS hierarchy styling
-  const backgroundRoads = useMemo(() => {
-    if (!Array.isArray(roads)) return [];
-    const sampleStep = networkMode === "50k" ? Math.max(1, Math.floor(roads.length / 350)) : 1;
-    return roads.filter((r, idx) => r && idx % sampleStep === 0);
-  }, [networkMode, roads]);
-
   const handleNodeClick = (node) => {
     setActivePopupNode(node);
     if (onSelectNode) onSelectNode(node.id);
-    // If clicking a hospital node, trigger destination selection
     if ((node.type === "hospital" || node.hospitalObj) && onSelectDestination) {
       const targetHospId = node.hospitalObj ? node.hospitalObj.id : node.id;
       onSelectDestination(targetHospId);
@@ -167,15 +223,15 @@ export default function Map({
     if (road.blocked) {
       return { stroke: "#EF4444", strokeWidth: "2.2", strokeDasharray: "4,4", opacity: "0.9" };
     }
-    const type = road.roadType || "Rural Road";
+    const type = road.type || "District Road";
     if (type === "Highway") {
-      return { stroke: "#F59E0B", strokeWidth: "2.0", strokeDasharray: "none", opacity: "0.85" }; // Gold
+      return { stroke: mapTheme === "gis-dark" ? "#FBBF24" : "#F59E0B", strokeWidth: "2.2", strokeDasharray: "none", opacity: "0.9" }; // Vibrant Gold
     } else if (type === "State Highway") {
-      return { stroke: "#06B6D4", strokeWidth: "1.6", strokeDasharray: "none", opacity: "0.8" }; // Cyan/Teal
+      return { stroke: mapTheme === "gis-dark" ? "#22D3EE" : "#06B6D4", strokeWidth: "1.6", strokeDasharray: "none", opacity: "0.8" }; // Cyan/Teal
     } else if (type === "District Road") {
-      return { stroke: "#64748B", strokeWidth: "1.2", strokeDasharray: "none", opacity: "0.6" }; // Slate
+      return { stroke: mapTheme === "gis-dark" ? "#64748B" : "#94A3B8", strokeWidth: "1.0", strokeDasharray: "none", opacity: "0.6" }; // Slate
     }
-    return { stroke: "#CBD5E1", strokeWidth: "0.8", strokeDasharray: "none", opacity: "0.5" }; // Default
+    return { stroke: "#CBD5E1", strokeWidth: "0.8", strokeDasharray: "none", opacity: "0.5" };
   };
 
   // Fallback initial position for ambulance marker if ambulancePos not yet calculated
@@ -184,16 +240,24 @@ export default function Map({
   const currentAmbY = ambulancePos ? ambulancePos.y : startNodePos.y;
 
   return (
-    <div className="map-card primary-demo-map">
+    <div className={`map-card primary-demo-map ${mapTheme}`}>
+      {/* Map Header Controls */}
       <div className="map-header">
         <h2 className="map-title inline-flex items-center gap-2">
           <Activity size={18} className="text-primary" />
-          <span>Live Interactive Map</span>
+          <span>Interactive GIS Map</span>
           <span className={`badge ${networkMode === "50k" ? "badge-purple" : "badge-success"}`}>
             {networkMode === "50k" ? `50,000 Nodes (${hospitals.length} Hospitals)` : "Live Animated Canvas"}
           </span>
         </h2>
         <div className="map-controls">
+          <button 
+            className="map-ctrl-btn" 
+            onClick={() => setMapTheme(prev => prev === "gis-light" ? "gis-dark" : "gis-light")}
+            title="Toggle Map Style (Light/Dark GIS)"
+          >
+            <Compass size={16} />
+          </button>
           <button className="map-ctrl-btn" onClick={() => setZoomLevel(prev => Math.min(prev + 0.1, 1.4))} title="Zoom In">
             <Plus size={16} />
           </button>
@@ -207,24 +271,20 @@ export default function Map({
       </div>
 
       <div className="map-viewport" style={{ transform: `scale(${zoomLevel})` }}>
-        {/* SVG Network Mesh & GIS Canvas */}
+        {/* SVG Continuous Network Mesh & Smooth Route Canvas */}
         <svg className="map-svg-canvas" viewBox="0 0 100 100" preserveAspectRatio="none">
-          {/* Layer 1: Background GIS Road Hierarchy Mesh */}
-          {backgroundRoads.map((road) => {
+          {/* Layer 1: Continuous Connected GIS Road Corridors */}
+          {continuousRoadCorridors.map((road) => {
             if (!road) return null;
-            const from = getNodePos(road.from);
-            const to = getNodePos(road.to);
-            if (!from.x || !to.x) return null;
-
             const style = getRoadStyle(road);
 
             return (
               <line
-                key={road.id || `bg_road_${Math.random()}`}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
+                key={road.id}
+                x1={road.x1}
+                y1={road.y1}
+                x2={road.x2}
+                y2={road.y2}
                 stroke={style.stroke}
                 strokeWidth={style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
@@ -238,7 +298,7 @@ export default function Map({
             <polyline
               points={pathPolylinePoints}
               fill="none"
-              stroke="#2563EB"
+              stroke={mapTheme === "gis-dark" ? "#00F0FF" : "#2563EB"}
               strokeWidth="4.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -253,7 +313,7 @@ export default function Map({
               cx={pt.x}
               cy={pt.y}
               r="1.2"
-              fill="#2563EB"
+              fill={mapTheme === "gis-dark" ? "#00F0FF" : "#2563EB"}
               stroke="#FFFFFF"
               strokeWidth="0.4"
             />
@@ -270,9 +330,25 @@ export default function Map({
           </div>
         )}
 
-        {/* Interactive Hospital & Facility HTML Pill Badges */}
+        {/* Sleek GIS Map Pins & Key Location Badges */}
         {displayBadges.map((node) => {
           if (!node) return null;
+
+          // Render sleek circular map pin icon for secondary hospitals to eliminate heavy pill clutter!
+          if (node.isPinOnly && !node.isOrigin && !node.isDestination) {
+            return (
+              <div
+                key={`pin_${node.id}`}
+                className="gis-hospital-icon-pin"
+                style={{ left: `${node.x}%`, top: `${node.y}%` }}
+                onClick={() => handleNodeClick(node)}
+                title={`${node.name} (Click to select for routing)`}
+              >
+                <Building2 size={12} />
+              </div>
+            );
+          }
+
           let nodeIcon = <Home size={13} />;
           let nodeClass = "node-badge village";
 
@@ -293,7 +369,6 @@ export default function Map({
               className={`${nodeClass} ${isSelected ? 'selected-node-highlight' : ''} ${isInPath ? 'in-path-node' : ''} ${node.isOrigin ? 'origin-badge' : ''} ${node.isDestination ? 'destination-badge' : ''}`}
               style={{ left: `${node.x}%`, top: `${node.y}%` }}
               onClick={() => handleNodeClick(node)}
-              title="Click to select this hospital for emergency routing"
             >
               <span className="node-badge-icon">{nodeIcon}</span>
               <span className="node-badge-text">{node.badgeLabel || node.name}</span>
@@ -375,8 +450,16 @@ export default function Map({
         )}
       </div>
 
-      {/* GIS Road Legend */}
+      {/* GIS Scale Bar & Legend Footer */}
       <div className="map-legend">
+        <div className="gis-scale-bar inline-flex items-center gap-1">
+          <span className="scale-line">0 km</span>
+          <span className="scale-line-bar"></span>
+          <span className="scale-line">5 km</span>
+          <span className="scale-line-bar"></span>
+          <span className="scale-line">10 km</span>
+        </div>
+
         <div className="legend-item">
           <span className="legend-line" style={{ backgroundColor: "#F59E0B", height: "3px" }}></span>
           <span>Highway</span>
@@ -386,12 +469,8 @@ export default function Map({
           <span>State Highway</span>
         </div>
         <div className="legend-item">
-          <span className="legend-line" style={{ backgroundColor: "#64748B", height: "2px" }}></span>
-          <span>District Road</span>
-        </div>
-        <div className="legend-item">
-          <span className="legend-line blocked-line"></span>
-          <span>Blocked Road</span>
+          <span className="legend-line" style={{ backgroundColor: "#94A3B8", height: "2px" }}></span>
+          <span>Local Road</span>
         </div>
         <div className="legend-item">
           <span className="legend-line selected-line"></span>
