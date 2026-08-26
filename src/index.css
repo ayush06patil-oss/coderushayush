@@ -371,6 +371,33 @@ body {
   margin-bottom: 12px;
 }
 
+/* Mass Dashboard Card */
+.mass-dashboard-card {
+  border: 1px solid #3B82F6;
+  background-color: #F0F9FF;
+}
+
+.sla-breakdown-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sla-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.safe-pill { background-color: var(--success-green-light); color: var(--success-green); border: 1px solid #86EFAC; }
+.risk-pill { background-color: var(--warning-amber-light); color: var(--warning-amber); border: 1px solid #FDE68A; }
+.breach-pill { background-color: var(--danger-red-light); color: var(--danger-red); border: 1px solid #FCA5A5; }
+
 /* Scalability Benchmark Card */
 .scalability-benchmark-card {
   border: 1px solid #C084FC;

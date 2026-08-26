@@ -10,13 +10,14 @@ import LiveResourcesCard from './components/LiveResourcesCard';
 import AlgorithmComparisonCard from './components/AlgorithmComparisonCard';
 import HospitalEvaluationCard from './components/HospitalEvaluationCard';
 import ScalabilityBenchmarkCard from './components/ScalabilityBenchmarkCard';
+import MassDashboardCard from './components/MassDashboardCard';
 import RoadFailureDemo from './components/RoadFailureDemo';
 import DecisionLogCollapsible from './components/DecisionLogCollapsible';
 import RouteDebugPanel from './components/RouteDebugPanel';
 import Map from './components/Map';
 
 import { RuralGraph } from './graph/graph';
-import { generate50kGraph } from './graph/largeGraphGenerator';
+import { generateMassSimulationDataset } from './data/massDatasetGenerator';
 import { SimulationEngine } from './simulation/simulation';
 import { calculateRoute } from './algorithms/routingEngine';
 import { runBenchmark } from './algorithms/benchmark';
@@ -74,9 +75,9 @@ export default function App() {
     medicineStockPct: 82
   });
 
-  // Memoized 50,000-Node Dataset Generation
-  const largeGraphData = useMemo(() => {
-    return generate50kGraph();
+  // Memoized 50,000-Node & 200,000-Edge Mass Simulation Dataset Generation
+  const massData = useMemo(() => {
+    return generateMassSimulationDataset();
   }, []);
 
   // Standard 10-Node Graph initialization
@@ -89,20 +90,20 @@ export default function App() {
 
   // Active Graph Instance based on networkMode ("standard" vs "50k")
   const activeGraph = useMemo(() => {
-    return networkMode === "50k" ? largeGraphData.graph : standardGraph;
-  }, [networkMode, largeGraphData.graph, standardGraph]);
+    return networkMode === "50k" ? massData.graph : standardGraph;
+  }, [networkMode, massData.graph, standardGraph]);
 
   const activeNodes = useMemo(() => {
-    return networkMode === "50k" ? largeGraphData.nodes : appState.nodes;
-  }, [networkMode, largeGraphData.nodes, appState.nodes]);
+    return networkMode === "50k" ? massData.nodes : appState.nodes;
+  }, [networkMode, massData.nodes, appState.nodes]);
 
   const activeRoads = useMemo(() => {
-    return networkMode === "50k" ? largeGraphData.roads : appState.roads;
-  }, [networkMode, largeGraphData.roads, appState.roads]);
+    return networkMode === "50k" ? massData.roads : appState.roads;
+  }, [networkMode, massData.roads, appState.roads]);
 
   const activeHospitals = useMemo(() => {
-    return networkMode === "50k" ? largeGraphData.hospitals : appState.hospitals;
-  }, [networkMode, largeGraphData.hospitals, appState.hospitals]);
+    return networkMode === "50k" ? massData.hospitals : appState.hospitals;
+  }, [networkMode, massData.hospitals, appState.hospitals]);
 
   // Simulation Engine instance
   const simEngine = useMemo(() => {
@@ -272,7 +273,7 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "route",
-      text: `${res.algorithm} routing started (${networkMode === "50k" ? "50,000 Nodes" : "Standard Graph"})`
+      text: `${res.algorithm} routing started (${networkMode === "50k" ? "50,000 Nodes / 200,000 Edges" : "Standard Graph"})`
     };
     const log2 = {
       id: Date.now() + 1,
@@ -311,7 +312,7 @@ export default function App() {
     setBlockedEdgeInfo(activeEdge);
 
     if (networkMode === "50k") {
-      largeGraphData.graph.setRoadBlocked(activeEdge.roadId, true);
+      massData.graph.setRoadBlocked(activeEdge.roadId, true);
     }
 
     setAppState(prev => ({
@@ -548,12 +549,17 @@ export default function App() {
             </div>
           </div>
 
-          {/* 50,000-Node Scalability Benchmark Card (Phase 5) */}
+          {/* Mass Simulation Live Dashboard Card (50,000 Nodes, 200,000 Edges, 5,000 Locations) */}
+          {networkMode === "50k" && (
+            <MassDashboardCard massData={massData} />
+          )}
+
+          {/* 50,000-Node Scalability Benchmark Card */}
           {networkMode === "50k" && (
             <ScalabilityBenchmarkCard 
-              totalNodes={largeGraphData.totalNodes}
-              totalEdges={largeGraphData.totalEdges}
-              initTimeMs={largeGraphData.initTimeMs}
+              totalNodes={massData.totalNodes}
+              totalEdges={massData.totalEdges}
+              initTimeMs={massData.initTimeMs}
               benchmarkResult={benchmarkResult}
               activeAlgorithm={selectedAlgorithm}
             />
