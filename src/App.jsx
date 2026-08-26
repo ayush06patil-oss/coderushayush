@@ -9,18 +9,19 @@ import AmbulanceDispatchPanel from './components/AmbulanceDispatchPanel';
 import LiveResourcesCard from './components/LiveResourcesCard';
 import AlgorithmComparisonCard from './components/AlgorithmComparisonCard';
 import HospitalEvaluationCard from './components/HospitalEvaluationCard';
+import ScalabilityBenchmarkCard from './components/ScalabilityBenchmarkCard';
 import RoadFailureDemo from './components/RoadFailureDemo';
 import DecisionLogCollapsible from './components/DecisionLogCollapsible';
 import RouteDebugPanel from './components/RouteDebugPanel';
 import Map from './components/Map';
 
 import { RuralGraph } from './graph/graph';
+import { generate50kGraph } from './graph/largeGraphGenerator';
 import { SimulationEngine } from './simulation/simulation';
 import { calculateRoute } from './algorithms/routingEngine';
 import { runBenchmark } from './algorithms/benchmark';
 import { findActivePathEdge } from './algorithms/routeValidator';
 import { evaluateHospitals, selectBestAmbulance } from './engine/healthcareMatcher';
-import { EmergencyPriorityQueue, getPriorityScore } from './engine/priorityQueue';
 import { interpolatePathPosition } from './utils/pathInterpolator';
 
 import { 
@@ -38,6 +39,9 @@ export default function App() {
   const [selectedNodeId, setSelectedNodeId] = useState("node_v_d");
   const [selectedAlgorithm, setSelectedAlgorithm] = useState("astar");
   const [targetHospitalId, setTargetHospitalId] = useState("node_h_c");
+
+  // 50,000-Node Network Scale Toggle State
+  const [networkMode, setNetworkMode] = useState("standard"); // "standard" or "50k"
 
   // Active Emergency State
   const [currentEmergency, setCurrentEmergency] = useState(INITIAL_EMERGENCY);
@@ -57,7 +61,7 @@ export default function App() {
     assignedAmbulanceCode: "Ambulance #04"
   });
 
-  // Unified Application State
+  // Standard Application Data State
   const [appState, setAppState] = useState({
     nodes: MOCK_NODES,
     roads: MOCK_ROADS,
@@ -70,23 +74,45 @@ export default function App() {
     medicineStockPct: 82
   });
 
-  // Graph instance initialization - updates automatically when appState.roads changes!
-  const graph = useMemo(() => {
+  // Memoized 50,000-Node Dataset Generation
+  const largeGraphData = useMemo(() => {
+    return generate50kGraph();
+  }, []);
+
+  // Standard 10-Node Graph initialization
+  const standardGraph = useMemo(() => {
     const g = new RuralGraph();
     appState.nodes.forEach(n => g.addNode(n));
     appState.roads.forEach(r => g.addEdge(r));
     return g;
   }, [appState.nodes, appState.roads]);
 
+  // Active Graph Instance based on networkMode ("standard" vs "50k")
+  const activeGraph = useMemo(() => {
+    return networkMode === "50k" ? largeGraphData.graph : standardGraph;
+  }, [networkMode, largeGraphData.graph, standardGraph]);
+
+  const activeNodes = useMemo(() => {
+    return networkMode === "50k" ? largeGraphData.nodes : appState.nodes;
+  }, [networkMode, largeGraphData.nodes, appState.nodes]);
+
+  const activeRoads = useMemo(() => {
+    return networkMode === "50k" ? largeGraphData.roads : appState.roads;
+  }, [networkMode, largeGraphData.roads, appState.roads]);
+
+  const activeHospitals = useMemo(() => {
+    return networkMode === "50k" ? largeGraphData.hospitals : appState.hospitals;
+  }, [networkMode, largeGraphData.hospitals, appState.hospitals]);
+
   // Simulation Engine instance
   const simEngine = useMemo(() => {
-    return new SimulationEngine(graph);
-  }, [graph]);
+    return new SimulationEngine(activeGraph);
+  }, [activeGraph]);
 
   // Helper: Get start node ID from emergency village
   const getStartNodeId = (emergency) => {
     const villageName = emergency?.village || "Village D";
-    const foundNode = appState.nodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
+    const foundNode = activeNodes.find(n => n.name.toLowerCase() === villageName.toLowerCase());
     return foundNode ? foundNode.id : "node_v_d";
   };
 
@@ -95,18 +121,18 @@ export default function App() {
     const startId = getStartNodeId(currentEmergency);
     return evaluateHospitals(
       currentEmergency,
-      appState.hospitals,
+      activeHospitals,
       { cardiacMedicine: { availablePct: appState.medicineStockPct } },
-      graph,
+      activeGraph,
       startId
     );
-  }, [currentEmergency, appState.hospitals, appState.medicineStockPct, graph]);
+  }, [currentEmergency, activeHospitals, appState.medicineStockPct, activeGraph]);
 
   // Dynamic calculation of live ambulance coordinates on map
   const ambulancePos = useMemo(() => {
     const path = routeResult?.path || [];
-    return interpolatePathPosition(path, ambulanceSimState.progressPct, appState.nodes);
-  }, [routeResult?.path, ambulanceSimState.progressPct, appState.nodes]);
+    return interpolatePathPosition(path, ambulanceSimState.progressPct, activeNodes);
+  }, [routeResult?.path, ambulanceSimState.progressPct, activeNodes]);
 
   // Live Animation Loop for Ambulance Transit
   useEffect(() => {
@@ -175,13 +201,13 @@ export default function App() {
   // STEP 2 HANDLER: Select Hospital Destination
   const handleSelectDestination = (hospitalId) => {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-    const hospitalNode = appState.nodes.find(n => n.id === hospitalId);
+    const hospitalNode = activeNodes.find(n => n.id === hospitalId);
 
     setTargetHospitalId(hospitalId);
 
     // Dynamic Phase 3 Ambulance Selection based on route travel time to emergency
     const startId = getStartNodeId(currentEmergency);
-    const ambSelect = selectBestAmbulance(startId, appState.ambulances, graph);
+    const ambSelect = selectBestAmbulance(startId, appState.ambulances, activeGraph);
 
     const assignedCode = ambSelect.bestAmbulance ? ambSelect.bestAmbulance.code : "Ambulance #04";
 
@@ -232,11 +258,11 @@ export default function App() {
       algorithm: algoToRun,
       startNodeId: startId,
       targetNodeId: targetHospitalId,
-      graph
+      graph: activeGraph
     });
 
     // Run dual benchmark
-    const bench = runBenchmark(startId, targetHospitalId, graph);
+    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
 
     setRouteResult(res);
     setBenchmarkResult(bench);
@@ -246,7 +272,7 @@ export default function App() {
       id: Date.now(),
       time: timestamp,
       type: "route",
-      text: `${res.algorithm} routing started`
+      text: `${res.algorithm} routing started (${networkMode === "50k" ? "50,000 Nodes" : "Standard Graph"})`
     };
     const log2 = {
       id: Date.now() + 1,
@@ -271,22 +297,23 @@ export default function App() {
     if (!routeResult || !routeResult.path || routeResult.path.length < 2) return;
 
     // Dynamically find an edge that is ACTUALLY present on the current algorithm path
-    const activeEdge = findActivePathEdge(routeResult.path, appState.roads, appState.nodes);
+    const activeEdge = findActivePathEdge(routeResult.path, activeRoads, activeNodes);
 
     if (!activeEdge) return;
 
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
 
-    // Store previous metrics for comparison display
     setPreviousDistance(routeResult.distance);
     setPreviousPathNames(
-      routeResult.path.map(id => appState.nodes.find(n => n.id === id)?.name || id)
+      routeResult.path.map(id => activeNodes.find(n => n.id === id)?.name || id)
     );
 
-    // Save blocked edge details
     setBlockedEdgeInfo(activeEdge);
 
-    // Update appState.roads to mark this specific edge as blocked
+    if (networkMode === "50k") {
+      largeGraphData.graph.setRoadBlocked(activeEdge.roadId, true);
+    }
+
     setAppState(prev => ({
       ...prev,
       roads: prev.roads.map(r => 
@@ -309,15 +336,14 @@ export default function App() {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
 
-    // Run selected algorithm on updated graph with blocked edge
     const newRes = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
       targetNodeId: targetHospitalId,
-      graph
+      graph: activeGraph
     });
 
-    const bench = runBenchmark(startId, targetHospitalId, graph);
+    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
 
     setRouteResult(newRes);
     setBenchmarkResult(bench);
@@ -348,23 +374,20 @@ export default function App() {
     const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
     const startId = getStartNodeId(currentEmergency);
 
-    // Reset all roads to unblocked in appState
+    if (blockedEdgeInfo) {
+      activeGraph.setRoadBlocked(blockedEdgeInfo.roadId, false);
+    }
+
     const unblockedRoads = appState.roads.map(r => ({ ...r, blocked: false }));
 
-    // Re-build clean graph
-    const cleanGraph = new RuralGraph();
-    appState.nodes.forEach(n => cleanGraph.addNode(n));
-    unblockedRoads.forEach(r => cleanGraph.addEdge(r));
-
-    // Re-run algorithm on unblocked graph
     const originalRes = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
       targetNodeId: targetHospitalId,
-      graph: cleanGraph
+      graph: activeGraph
     });
 
-    const bench = runBenchmark(startId, targetHospitalId, cleanGraph);
+    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
 
     setRouteResult(originalRes);
     setBenchmarkResult(bench);
@@ -417,29 +440,33 @@ export default function App() {
     setAmbulanceSimState(prev => ({ ...prev, isDispatched: false, isPaused: false, progressPct: 0 }));
   };
 
-  // Auto-calculate initial demo route on mount
+  // Auto-calculate initial demo route on mount and when networkMode changes
   useEffect(() => {
     const startId = getStartNodeId(currentEmergency);
     const res = calculateRoute({
       algorithm: selectedAlgorithm,
       startNodeId: startId,
       targetNodeId: targetHospitalId,
-      graph
+      graph: activeGraph
     });
-    const bench = runBenchmark(startId, targetHospitalId, graph);
+    const bench = runBenchmark(startId, targetHospitalId, activeGraph);
     setRouteResult(res);
     setBenchmarkResult(bench);
-  }, []);
+  }, [networkMode]);
 
   const isRoadBlockedState = !!blockedEdgeInfo;
 
   const currentPathNodeNames = (routeResult?.path || [])
-    .map(id => appState.nodes.find(n => n.id === id)?.name || id);
+    .map(id => activeNodes.find(n => n.id === id)?.name || id);
 
   return (
     <div className="app-layout">
-      {/* 1. Header */}
-      <Header systemTime="10:32 AM" />
+      {/* 1. Header with Network Scale Selector */}
+      <Header 
+        systemTime="10:32 AM" 
+        networkMode={networkMode}
+        onToggleNetworkMode={(mode) => setNetworkMode(mode)}
+      />
 
       <div className="app-body">
         <main className="main-content demo-flow-content">
@@ -507,7 +534,7 @@ export default function App() {
               )}
             </div>
 
-            {/* Right Column: Live Map Canvas with Dynamic Ambulance Positioning */}
+            {/* Right Column: Live Map Canvas with Dynamic DOM-Light Ambulance Positioning */}
             <div className="demo-map-col">
               <Map 
                 nodes={appState.nodes} 
@@ -520,6 +547,17 @@ export default function App() {
               />
             </div>
           </div>
+
+          {/* 50,000-Node Scalability Benchmark Card (Phase 5) */}
+          {networkMode === "50k" && (
+            <ScalabilityBenchmarkCard 
+              totalNodes={largeGraphData.totalNodes}
+              totalEdges={largeGraphData.totalEdges}
+              initTimeMs={largeGraphData.initTimeMs}
+              benchmarkResult={benchmarkResult}
+              activeAlgorithm={selectedAlgorithm}
+            />
+          )}
 
           {/* 4. Live Resource Status Summary Card */}
           <LiveResourcesCard 
@@ -544,7 +582,7 @@ export default function App() {
           {/* Dev Debug Panel for Path & Metric Audit */}
           <RouteDebugPanel 
             routeResult={routeResult} 
-            graph={graph} 
+            graph={activeGraph} 
             blockedEdgeInfo={blockedEdgeInfo}
           />
 

@@ -141,6 +141,16 @@ body {
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
 }
 
+.scale-toggle-select {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background-color: #F8FAFC;
+  color: var(--primary-blue);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -359,6 +369,52 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+}
+
+/* Scalability Benchmark Card */
+.scalability-benchmark-card {
+  border: 1px solid #C084FC;
+  background-color: #FAF5FF;
+}
+
+.scalability-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.sc-metric-box {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sc-metric-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-metric-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.sc-metric-val {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.sc-metric-sub {
+  font-size: 10px;
+  color: var(--text-muted);
 }
 
 /* Hospital Evaluation Card */
@@ -1156,6 +1212,7 @@ body {
 .capitalize { text-transform: capitalize; }
 .mt-auto { margin-top: auto; }
 .ml-1 { margin-left: 4px; }
+.ml-3 { margin-left: 12px; }
 .inline-flex { display: inline-flex; }
 .items-center { align-items: center; }
 .gap-1 { gap: 4px; }
@@ -1169,7 +1226,7 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .resources-mini-grid {
+  .scalability-grid, .resources-mini-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -1197,7 +1254,7 @@ body {
     padding: 8px 14px;
   }
 
-  .resources-mini-grid {
+  .scalability-grid, .resources-mini-grid {
     grid-template-columns: 1fr;
   }
 
