@@ -41,9 +41,14 @@ export default function Map({
     return dict;
   }, [nodes]);
 
+  // Scale node percentage coordinates into 15%..85% viewport range so badges never overlap top header bar or spill out
   const getNodePos = (nodeId) => {
     const node = nodeDict[nodeId];
-    return node ? { x: node.x, y: node.y } : { x: 50, y: 50 };
+    if (!node) return { x: 50, y: 50 };
+    return {
+      x: 15 + (node.x / 100) * 70,
+      y: 15 + (node.y / 100) * 70
+    };
   };
 
   // Construct continuous SVG polyline points string for active calculated path
@@ -84,7 +89,6 @@ export default function Map({
   // Filter display nodes for clean HTML DOM badges (Villages, Hospitals, Health Centers)
   const displayBadges = useMemo(() => {
     if (!Array.isArray(nodes)) return [];
-    // Display all named villages, hospitals, health centers
     return nodes.filter(n => n && (n.type === "village" || n.type === "hospital" || n.type === "health_center" || ["node_v_a", "node_v_b", "node_v_d", "node_h_a", "node_h_b", "node_h_c"].includes(n.id)));
   }, [nodes]);
 
@@ -99,12 +103,14 @@ export default function Map({
 
   // Fallback initial position for ambulance marker if ambulancePos not yet calculated
   const startNodePos = calculatedPath && calculatedPath.length > 0 ? getNodePos(calculatedPath[0]) : { x: 51, y: 56 };
-  const currentAmbX = ambulancePos ? ambulancePos.x : startNodePos.x;
-  const currentAmbY = ambulancePos ? ambulancePos.y : startNodePos.y;
+  const rawAmbX = ambulancePos ? ambulancePos.x : (calculatedPath && calculatedPath.length > 0 ? nodeDict[calculatedPath[0]]?.x || 50 : 50);
+  const rawAmbY = ambulancePos ? ambulancePos.y : (calculatedPath && calculatedPath.length > 0 ? nodeDict[calculatedPath[0]]?.y || 50 : 50);
+  const currentAmbX = 15 + (rawAmbX / 100) * 70;
+  const currentAmbY = 15 + (rawAmbY / 100) * 70;
 
   return (
     <div className="map-card primary-demo-map">
-      {/* Map Header */}
+      {/* 1. Top Header Bar */}
       <div className="map-header">
         <h2 className="map-title inline-flex items-center gap-2">
           <Activity size={18} className="text-primary" />
@@ -126,9 +132,10 @@ export default function Map({
         </div>
       </div>
 
+      {/* 2. Middle Constrained Viewport Canvas */}
       <div className="map-viewport" style={{ transform: `scale(${zoomLevel})` }}>
-        {/* SVG Network Grid & Active A* Route Canvas */}
-        <svg className="map-svg-canvas" viewBox="0 0 100 100" preserveAspectRatio="none">
+        {/* SVG Network Grid & Active A* Route Canvas strictly constrained with viewBox */}
+        <svg className="map-svg-canvas" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
           {/* Layer 1: Background Road Network Grid */}
           {(roads || []).map((road) => {
             if (!road) return null;
@@ -143,8 +150,8 @@ export default function Map({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke={road.blocked ? "#DC2626" : "#E2E8F0"}
-                strokeWidth={road.blocked ? "2.2" : "1.8"}
+                stroke={road.blocked ? "#DC2626" : "#CBD5E1"}
+                strokeWidth={road.blocked ? "2.2" : "1.6"}
                 strokeDasharray={road.blocked ? "3,3" : "none"}
                 opacity={road.blocked ? "0.9" : "0.75"}
               />
@@ -169,15 +176,16 @@ export default function Map({
         {routeMidpointPos && (
           <div
             className="map-time-label active-path-label midpoint-time-tag"
-            style={{ left: `${routeMidpointPos.x}%`, top: `${routeMidpointPos.y - 3}%` }}
+            style={{ left: `${routeMidpointPos.x}%`, top: `${routeMidpointPos.y - 4}%` }}
           >
             {totalRouteTravelTime} min ETA
           </div>
         )}
 
-        {/* Clean HTML Badges (Villages, Hospitals, Health Centers) */}
+        {/* Clean HTML Badges (Villages, Hospitals, Health Centers) Safely Positioned Inside Canvas */}
         {displayBadges.map((node) => {
           if (!node) return null;
+          const pos = getNodePos(node.id);
           let nodeIcon = <Home size={13} />;
           let nodeClass = "node-badge village";
 
@@ -198,7 +206,7 @@ export default function Map({
             <div
               key={`badge_${node.id}`}
               className={`${nodeClass} ${isSelected ? 'selected-node-highlight' : ''} ${isInPath ? 'in-path-node' : ''} ${isOrigin ? 'origin-badge' : ''} ${isDestination ? 'destination-badge' : ''}`}
-              style={{ left: `${node.x}%`, top: `${node.y}%` }}
+              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               onClick={() => handleNodeClick(node)}
             >
               <span className="node-badge-icon">{nodeIcon}</span>
@@ -231,8 +239,8 @@ export default function Map({
           <div 
             className="map-popup-card"
             style={{ 
-              left: `${Math.min(activePopupNode.x || 50, 70)}%`, 
-              top: `${Math.max((activePopupNode.y || 50) - 15, 10)}%` 
+              left: `${Math.min(getNodePos(activePopupNode.id).x || 50, 70)}%`, 
+              top: `${Math.max((getNodePos(activePopupNode.id).y || 50) - 15, 10)}%` 
             }}
           >
             <div className="popup-header">
@@ -281,7 +289,7 @@ export default function Map({
         )}
       </div>
 
-      {/* Map Legend */}
+      {/* 3. Bottom Legend Footer */}
       <div className="map-legend">
         <div className="legend-item">
           <span className="legend-icon village-color"><Home size={14} /></span>

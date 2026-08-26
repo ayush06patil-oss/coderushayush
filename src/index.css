@@ -1004,19 +1004,19 @@ body {
 .cursor-pointer { cursor: pointer; }
 .log-toggle-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); }
 
-/* Map Component Styles — Clean Scrollable Map Container */
-.map-card.clean-scrollable-map {
+/* Map Component Styles — Clean Constrained Layout Fix */
+.map-card {
   background-color: #FAFAFA;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-card);
-  padding: 18px;
+  padding: 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 74px;
   height: calc(100vh - 100px);
-  max-height: 650px;
+  max-height: 520px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1025,11 +1025,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  z-index: 10;
+  height: 40px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  z-index: 20;
 }
 
 .map-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -1060,41 +1064,28 @@ body {
   background-color: #F1F5F9;
 }
 
-.scrollable-map-viewport {
+.map-viewport {
   flex: 1;
-  margin: 12px 0;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
   border-radius: 10px;
+  background-color: #F8FAFC;
   border: 1px solid var(--border-color);
-  background-color: white;
-}
-
-.scrollable-map-viewport::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.scrollable-map-viewport::-webkit-scrollbar-thumb {
-  background-color: #CBD5E1;
-  border-radius: 4px;
 }
 
 .map-svg-canvas {
+  width: 100%;
+  height: 100%;
   position: absolute;
   top: 0;
   left: 0;
+  pointer-events: none;
 }
 
 .active-route-polyline {
   stroke-dasharray: none;
   filter: drop-shadow(0px 2px 6px rgba(37, 99, 235, 0.45));
-}
-
-.clean-golden-node {
-  transition: r 0.15s ease, fill 0.15s ease;
-}
-
-.clean-golden-node:hover {
-  r: 9;
 }
 
 .midpoint-time-tag {
@@ -1127,8 +1118,13 @@ body {
   box-shadow: var(--shadow-sm);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-  z-index: 12;
+  z-index: 10;
   white-space: nowrap;
+}
+
+.node-badge:hover {
+  transform: translate(-50%, -55%) scale(1.05);
+  box-shadow: var(--shadow-md);
 }
 
 .node-badge.origin-badge {
@@ -1137,7 +1133,7 @@ body {
   color: var(--primary-blue);
   font-weight: 700;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
-  z-index: 15;
+  z-index: 12;
 }
 
 .node-badge.destination-badge {
@@ -1146,7 +1142,7 @@ body {
   color: var(--danger-red);
   font-weight: 700;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25);
-  z-index: 15;
+  z-index: 12;
 }
 
 .map-ambulance-marker {
@@ -1208,14 +1204,14 @@ body {
 
 .map-legend {
   background-color: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border: 1px solid var(--border-color);
-  margin-top: auto;
-  z-index: 10;
+  margin-top: 10px;
+  z-index: 20;
   font-size: 11px;
   font-weight: 500;
   gap: 10px;
